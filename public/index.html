@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>साझा स्कोर कार्ड — मोबाइल गेम</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root {
+  --felt: #0a4a25;
+  --panel: #041f12;
+  --gold: #ffd166;
+  --red: #e53935;
+  --bg-dark: #071b14;
+}
+
+* {
+  box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at center, #11733a 0%, #075126 60%, #032c17 100%);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+button, select, input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 700;
+  background: var(--gold);
+  color: #182315;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* TOP NAVBAR */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--panel);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  z-index: 10;
+}
+
+.brand {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* SCORE BAR */
+.scorebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  font-size: 11px;
+  font-weight: 700;
+  gap: 4px;
+}
+
+.team1 { color: #8ed0ff; }
+.team2 { color: #ffaaaa; }
+
+.main-score {
+  font-size: 13px;
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 209, 102, 0.3);
+}
+
+.btn-score {
+  padding: 4px 8px;
+  font-size: 10px;
+  background: #2196f3;
+  color: #fff;
+}
+
+/* TRACK BAR */
+.track {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 11px;
+}
+
+.pill {
+  border-radius: 12px;
+  padding: 3px 8px;
+  background: #9b5a0b;
+  color: #fff;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+/* STATUS MESSAGE */
+.status {
+  text-align: center;
+  padding: 6px 8px;
+  color: #ffe88b;
+  font-weight: 700;
+  font-size: 12px;
+  min-height: 28px;
+}
+
+/* MOBILE GAME LAYOUT */
+.table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 8px 8px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.north, .south {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.middle {
+  display: grid;
+  grid-template-columns: 75px 1fr 75px;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0;
+  flex: 1;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* PLAY ARENA */
+.arena {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(0, 44, 22, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  height: 100%;
+  padding: 6px;
+  position: relative;
+}
+
+.arena-label {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.trick-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  align-items: center;
+  justify-items: center;
+  width: 100%;
+}
+
+.played {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: #d8f2df;
+}
+
+/* PLAYER BADGES */
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 110px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(163, 35, 35, 0.85);
+  border: 1.5px solid transparent;
+  text-align: center;
+}
+
+.badge.t1 { background: rgba(7, 90, 155, 0.85); }
+.badge.active { background: var(--gold); color: #172319; border-color: #fff; }
+.badge.dealer { outline: 2px solid var(--gold); }
+.badge .name { font-weight: 800; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
+.badge .sub { font-size: 9px; opacity: 0.9; }
+
+/* CARD & HAND DISPLAY */
+.hand-container {
+  width: 100%;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.hand-container::-webkit-scrollbar { display: none; }
+
+.hand {
+  display: flex;
+  justify-content: center;
+  min-width: max-content;
+  margin: 0 auto;
+  padding: 0 10px;
+}
+
+.card {
+  position: relative;
+  flex: 0 0 auto;
+  width: clamp(42px, 12vw, 56px);
+  height: clamp(60px, 17vw, 80px);
+  margin-left: clamp(-18px, -4vw, -12px);
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  transition: transform 0.1s ease;
+  user-select: none;
+  overflow: hidden;
+  border: 1px solid #aaa;
+}
+
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.card:first-child { margin-left: 0; }
+
+.card.playable {
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.5);
+  cursor: pointer;
+}
+
+.card.playable:active {
+  transform: translateY(-8px);
+}
+
+.card.disabled {
+  opacity: 0.4;
+  filter: grayscale(40%);
+}
+
+.card.small {
+  width: 38px;
+  height: 54px;
+  margin: 0;
+}
+
+/* MODALS & OVERLAYS */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  z-index: 100;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 400px;
+  background: #132b24;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.dialog h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: var(--gold);
+}
+
+.dialog input, .dialog select {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-dark);
+  color: #fff;
+  border: 1px solid #527461;
+  border-radius: 6px;
+  margin: 6px 0 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.secondary {
+  background: #dbe8df;
+  color: #132b24;
+}
+
+.suits {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.suitbtn {
+  font-size: 14px;
+  padding: 10px 0;
+  background: #fff;
+  color: #111;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+.suitbtn.red { color: var(--red); }
+
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  text-align: center;
+  font-size: 10px;
+}
+
+.score-table th, .score-table td {
+  border: 1px solid #527461;
+  padding: 5px 3px;
+}
+
+.score-table th {
+  background: var(--bg-dark);
+  color: var(--gold);
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="loginModal" class="overlay">
+  <div class="dialog">
+    <h2>गेम में शामिल हों</h2>
+    <label style="font-size:12px;">आपका नाम:</label>
+    <input type="text" id="playerNameInput" placeholder="खिलाड़ी" value="खिलाड़ी">
+    <label style="font-size:12px;">रूम कोड:</label>
+    <input type="text" id="roomCodeInput" placeholder="ROOM1" value="ROOM1">
+    <div class="actions">
+      <button id="joinGameBtn" style="width:100%;">खेल शुरू करें</button>
+    </div>
+  </div>
+</div>
+
+<header class="top">
+  <div class="brand">♠ साझा स्कोर गेम</div>
+  <span id="roomLabel" style="font-weight:bold;color:var(--gold);font-size:12px;">रूम: —</span>
+</header>
+
+<div class="scorebar">
+  <span class="team1">टीम 1 (जीत: <b id="teamGameWins1">0</b>/3)</span>
+  <span class="main-score">स्कोर: <b id="sharedScore">0</b> / 52</span>
+  <button id="checkScoreBtn" class="btn-score">📊 स्कोर</button>
+  <span class="team2">टीम 2 (जीत: <b id="teamGameWins2">0</b>/3)</span>
+</div>
+
+<div class="track">
+  <span id="gamePill" class="pill">गेम: 1</span>
+  <span id="dealerPill" class="pill">डीलर: —</span>
+  <span id="trumpPill" class="pill">हुकुम: —</span>
+  <span id="trickLabel" class="pill">1/13</span>
+</div>
+
+<div id="status" class="status">खिलाड़ियों का इंतज़ार है...</div>
+
+<main class="table">
+  <div class="north" id="badge2"></div>
+  <div class="middle">
+    <div class="side" id="badge1"></div>
+    <section class="arena">
+      <div class="arena-label">वर्तमान हाथ</div>
+      <div id="trickCards" class="trick-cards"></div>
+    </section>
+    <div class="side" id="badge3"></div>
+  </div>
+  <div class="south" id="badge0"></div>
+  <div class="hand-container">
+    <div id="hand" class="hand"></div>
+  </div>
+</main>
+
+<div id="modalRoot"></div>
+
+<script>
+"use strict";
+
+const socket = io();
+const SUITS = [
+  {name:"हुकुम (Spades)",symbol:"♠",code:"S",red:false},
+  {name:"पान (Hearts)",symbol:"♥",code:"H",red:true},
+  {name:"ईंट (Diamonds)",symbol:"♦",code:"D",red:true},
+  {name:"चिड़ी (Clubs)",symbol:"♣",code:"C",red:false}
+];
+
+let myRoomCode = "";
+let myName = "";
+let roomData = null;
+
+const $ = id => document.getElementById(id);
+
+function getRankCode(v) { return v === 10 ? '0' : v === 11 ? 'J' : v === 12 ? 'Q' : v === 13 ? 'K' : v === 14 ? 'A' : String(v); }
+function getRankDisplay(v) { return v === 11 ? 'J' : v === 12 ? 'Q' : v === 13 ? 'K' : v === 14 ? 'A' : String(v); }
+function getImageUrl(value, suitCode) { return `https://deckofcardsapi.com/static/img/${getRankCode(value)}${suitCode}.png`; }
+
+function cardHtml(c, small=false, playable=false, disabled=false) {
+  const suit = SUITS[c.suit];
+  const cls = (playable ? " playable" : "") + (disabled ? " disabled" : "") + (small ? " small" : "");
+  return `
+    <div class="card${cls}" ${playable ? `data-suit="${c.suit}" data-val="${c.value}"` : ""}>
+      <img src="${getImageUrl(c.value, suit.code)}" alt="${getRankDisplay(c.value)}" />
+    </div>
+  `;
+}
+
+$("joinGameBtn").onclick = () => {
+  myName = $("playerNameInput").value.trim() || "खिलाड़ी";
+  myRoomCode = $("roomCodeInput").value.trim().toUpperCase() || "ROOM1";
+  $("loginModal").classList.add("hidden");
+  $("roomLabel").textContent = `रूम: ${myRoomCode}`;
+  socket.emit('joinRoom', { roomCode: myRoomCode, playerName: myName });
+};
+
+$("checkScoreBtn").onclick = () => showScoreboardModal();
+
+socket.on('roomStateUpdate', (data) => {
+  roomData = data;
+  render();
+});
+
+function getMyPlayer() {
+  return roomData ? roomData.players.find(p => p.id === socket.id) : null;
+}
+
+function render() {
+  if (!roomData) return;
+  const myPlayer = getMyPlayer();
+
+  if (roomData.gameState === 'LOBBY') {
+    $("status").textContent = `खिलाड़ियों का इंतज़ार जारी है (${roomData.players.length}/4)...`;
+    if (roomData.players.length < 4) return;
+  }
+
+  const dealer = roomData.players[roomData.dealerIndex];
+  $("dealerPill").textContent = `डीलर: ${dealer ? dealer.name : '—'}`;
+  $("gamePill").textContent = `गेम: ${roomData.gameNumber}`;
+  $("sharedScore").textContent = roomData.gameScore;
+  $("teamGameWins1").textContent = roomData.teamGameWins[0];
+  $("teamGameWins2").textContent = roomData.teamGameWins[1];
+
+  if (roomData.gameState === 'AUCTION') {
+    $("status").textContent = `बोली प्रक्रिया: ${roomData.players[roomData.auctionTurnIndex].name} की बारी`;
+  } else if (roomData.gameState === 'TRUMP_SELECT') {
+    $("status").textContent = `हुकुम चुना जा रहा है...`;
+  } else if (roomData.gameState === 'PLAYING') {
+    $("status").textContent = `बारी: ${roomData.players[roomData.turnIndex].name}`;
+  } else if (roomData.gameState === 'HAND_OVER') {
+    $("status").textContent = `राउंड समाप्त! वर्तमान स्कोर: ${roomData.gameScore}`;
+  } else if (roomData.gameState === 'MATCH_OVER') {
+    $("status").textContent = `🏆 मैच समाप्त! टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!`;
+  }
+
+  $("trickLabel").textContent = `${roomData.trickNo}/13`;
+  $("trumpPill").textContent = roomData.trumpSuit === null ? "हुकुम: —" : `${SUITS[roomData.trumpSuit].symbol}`;
+
+  const mySeat = myPlayer ? myPlayer.seatIndex : 0;
+  for (let relative = 0; relative < 4; relative++) {
+    const actualSeat = (mySeat + relative) % 4;
+    const player = roomData.players[actualSeat];
+    const badgeEl = $(`badge${relative}`);
+
+    if (player) {
+      const isTurn = roomData.gameState === 'AUCTION' ? roomData.auctionTurnIndex === actualSeat : roomData.turnIndex === actualSeat;
+      const isDealer = roomData.dealerIndex === actualSeat;
+      const sub = roomData.gameState === 'AUCTION' 
+        ? (player.hasPassed ? "पास" : player.currentBid ? `बोली:${player.currentBid}` : "इंतज़ार")
+        : `जीत:${player.tricksWon}`;
+      
+      badgeEl.innerHTML = `
+        <div class="badge ${player.teamId === 1 ? "t1" : ""} ${isTurn ? "active" : ""} ${isDealer ? "dealer" : ""}">
+          <div class="name">${player.name} ${actualSeat === mySeat ? "(आप)" : ""}</div>
+          <div class="sub">${sub} ${isDealer ? "🃏" : ""}</div>
+        </div>
+      `;
+    } else {
+      badgeEl.innerHTML = `<div class="badge"><div class="name">खाली</div></div>`;
+    }
+  }
+
+  $("trickCards").innerHTML = roomData.currentTrick.map(play => `
+    <div class="played">
+      <span>${roomData.players[play.playerIndex].name}</span>
+      ${cardHtml(play.card, true)}
+    </div>
+  `).join("");
+
+  if (myPlayer) {
+    const isMyTurn = roomData.gameState === 'PLAYING' && roomData.turnIndex === myPlayer.seatIndex;
+    let validMoves = [];
+
+    if (isMyTurn) {
+      if (roomData.currentTrick.length === 0) validMoves = [...myPlayer.hand];
+      else {
+        const led = roomData.currentTrick[0].card.suit;
+        const same = myPlayer.hand.filter(c => c.suit === led);
+        validMoves = same.length ? same : [...myPlayer.hand];
+      }
+    }
+
+    $("hand").innerHTML = myPlayer.hand.map(c => {
+      const ok = validMoves.some(x => x.suit === c.suit && x.value === c.value);
+      return cardHtml(c, false, ok, isMyTurn && !ok);
+    }).join("");
+
+    document.querySelectorAll(".card.playable").forEach(el => {
+      el.onclick = () => {
+        const suit = Number(el.dataset.suit);
+        const val = Number(el.dataset.val);
+        socket.emit('playCard', { roomCode: myRoomCode, card: { suit, value: val } });
+      };
+    });
+  }
+
+  handleDialogs(myPlayer);
+}
+
+function handleDialogs(myPlayer) {
+  if (!myPlayer) return;
+  const modalRoot = $("modalRoot");
+
+  if (roomData.gameState === 'AUCTION' && roomData.auctionTurnIndex === myPlayer.seatIndex) {
+    const min = Math.max(8, roomData.highestBid + 1);
+    modalRoot.innerHTML = `
+      <div class="overlay">
+        <div class="dialog">
+          <h2>अपनी बोली लगाएँ</h2>
+          <p style="font-size:12px;">सर्वोच्च बोली: ${roomData.highestBid} हाथ</p>
+          <select id="bidSelect">${Array.from({length: 14 - min}, (_, i) => `<option value="${min+i}">${min+i} हाथ</option>`).join("")}</select>
+          <div class="actions">
+            <button id="passBtn" class="secondary" style="flex:1;">पास करें</button>
+            <button id="bidBtn" style="flex:1;">बोली लगाएँ</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    $("passBtn").onclick = () => { socket.emit('placeBid', { roomCode: myRoomCode, passed: true }); modalRoot.innerHTML = ""; };
+    $("bidBtn").onclick = () => {
+      const b = Number($("bidSelect").value);
+      socket.emit('placeBid', { roomCode: myRoomCode, bid: b, passed: false });
+      modalRoot.innerHTML = "";
+    };
+  } else if (roomData.gameState === 'TRUMP_SELECT') {
+    if (roomData.bidderIndex === myPlayer.seatIndex) {
+      modalRoot.innerHTML = `
+        <div class="overlay">
+          <div class="dialog">
+            <h2>हुकुम का रंग चुनें</h2>
+            <div class="suits">${SUITS.map((s,i) => `<button class="suitbtn ${s.red ? "red" : ""}" onclick="selectTrump(${i})">${s.symbol}${s.name}</button>`).join("")}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      modalRoot.innerHTML = `
+        <div class="overlay">
+          <div class="dialog">
+            <h2>हुकुम का चुनाव जारी...</h2>
+            <p style="font-size:12px;">${roomData.players[roomData.bidderIndex].name} हुकुम का रंग चुन रहे हैं।</p>
+          </div>
+        </div>
+      `;
+    }
+  } else if (roomData.gameState === 'HAND_OVER') {
+    modalRoot.innerHTML = `
+      <div class="overlay">
+        <div class="dialog">
+          <h2>राउंड समाप्त</h2>
+          <p style="font-size:12px;">बोली: <b>${roomData.highestBid}</b> हाथ (${roomData.players[roomData.bidderIndex].name} द्वारा)</p>
+          <p style="font-size:12px;"><b>अपडेटेड स्कोर: ${roomData.gameScore}</b></p>
+          <p style="font-size:12px;">अगले डीलर: <b>${roomData.players[roomData.dealerIndex].name}</b></p>
+          <div class="actions">
+            <button id="nextHandBtn" style="width:100%;">अगला राउंड शुरू करें</button>
+          </div>
+        </div>
+      </div>
+    `;
+    $("nextHandBtn").onclick = () => {
+      socket.emit('nextHand', { roomCode: myRoomCode });
+      modalRoot.innerHTML = "";
+    };
+  } else if (roomData.gameState === 'MATCH_OVER') {
+    modalRoot.innerHTML = `
+      <div class="overlay">
+        <div class="dialog" style="text-align:center;">
+          <h2>🏆 मैच समाप्त</h2>
+          <h2 style="color:var(--gold);margin:10px 0;">टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!</h2>
+          <div class="actions" style="justify-content:center;">
+            <button onclick="location.reload()">नया मैच खेलें</button>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    modalRoot.innerHTML = "";
+  }
+}
+
+function showScoreboardModal() {
+  if (!roomData) return;
+  const historyRows = roomData.scoreHistory.map(h => `
+    <tr>
+      <td>G${h.game}-H${h.hand}</td>
+      <td>${h.dealer}</td>
+      <td>${h.bidder}(${h.bid})</td>
+      <td>${h.startScore}➔<b>${h.endScore}</b></td>
+    </tr>
+  `).join("");
+
+  $("modalRoot").innerHTML = `
+    <div class="overlay">
+      <div class="dialog">
+        <h2>📊 स्कोर कार्ड</h2>
+        <table class="score-table">
+          <thead>
+            <tr>
+              <th>राउंड</th>
+              <th>डीलर</th>
+              <th>बोली</th>
+              <th>स्कोर</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${historyRows.length > 0 ? historyRows : '<tr><td colspan="4">अभी कोई राउंड नहीं हुआ है</td></tr>'}
+          </tbody>
+        </table>
+        <p style="font-size:11px;"><b>वर्तमान कुल स्कोर:</b> ${roomData.gameScore} / 52</p>
+        <div class="actions">
+          <button onclick="$('modalRoot').innerHTML=''" class="secondary" style="width:100%;">बंद करें</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.selectTrump = (suitIdx) => {
+  socket.emit('selectTrump', { roomCode: myRoomCode, suitIndex: suitIdx });
+  $("modalRoot").innerHTML = "";
+};
+</script>
+</body>
+</html>
