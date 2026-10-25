@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="hi">
 <head>
@@ -13,13 +14,11 @@
   --red: #e53935;
   --bg-dark: #071b14;
 }
-
 * {
   box-sizing: border-box;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-
 body {
   margin: 0;
   padding: 0;
@@ -32,11 +31,7 @@ body {
   flex-direction: column;
   overflow-x: hidden;
 }
-
-button, select, input {
-  font: inherit;
-}
-
+button, select, input { font: inherit; }
 button {
   cursor: pointer;
   border: 0;
@@ -46,15 +41,8 @@ button {
   background: var(--gold);
   color: #182315;
 }
-
-button:active {
-  transform: scale(0.98);
-}
-
-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* TOP NAVBAR */
 .top {
@@ -66,11 +54,7 @@ button:disabled {
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   z-index: 10;
 }
-
-.brand {
-  font-size: 14px;
-  font-weight: 800;
-}
+.brand { font-size: 14px; font-weight: 800; }
 
 /* SCORE BAR */
 .scorebar {
@@ -83,10 +67,8 @@ button:disabled {
   font-weight: 700;
   gap: 4px;
 }
-
 .team1 { color: #8ed0ff; }
 .team2 { color: #ffaaaa; }
-
 .main-score {
   font-size: 13px;
   color: var(--gold);
@@ -95,7 +77,6 @@ button:disabled {
   border-radius: 12px;
   border: 1px solid rgba(255, 209, 102, 0.3);
 }
-
 .btn-score {
   padding: 4px 8px;
   font-size: 10px;
@@ -108,11 +89,11 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-around;
+  flex-wrap: wrap;
   padding: 4px 8px;
   background: rgba(0, 0, 0, 0.2);
   font-size: 11px;
 }
-
 .pill {
   border-radius: 12px;
   padding: 3px 8px;
@@ -143,13 +124,11 @@ button:disabled {
   margin: 0 auto;
   width: 100%;
 }
-
 .north, .south {
   display: flex;
   justify-content: center;
   width: 100%;
 }
-
 .middle {
   display: grid;
   grid-template-columns: 75px 1fr 75px;
@@ -158,7 +137,6 @@ button:disabled {
   margin: 6px 0;
   flex: 1;
 }
-
 .side {
   display: flex;
   align-items: center;
@@ -178,7 +156,6 @@ button:disabled {
   padding: 6px;
   position: relative;
 }
-
 .arena-label {
   position: absolute;
   top: 4px;
@@ -189,23 +166,69 @@ button:disabled {
   font-size: 9px;
   text-transform: uppercase;
 }
-
 .trick-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  align-items: center;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   width: 100%;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-top: 14px;
 }
-
+.trick-group {
+  padding: 4px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.trick-heading {
+  margin-bottom: 4px;
+  text-align: center;
+  font-size: 9px;
+  color: var(--gold);
+}
+.trick-plays {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  justify-items: center;
+}
+.full-house-reveal {
+  margin: 4px 8px;
+  padding: 6px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+.full-house-reveal-title {
+  margin-bottom: 5px;
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 700;
+}
+.reveal-hand {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: 3px;
+}
+.reveal-hand .card {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 7;
+  min-width: 0;
+  margin: 0;
+}
 .played {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  font-size: 10px;
+  min-width: 0;
+  font-size: 8px;
   color: #d8f2df;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* PLAYER BADGES */
@@ -222,11 +245,17 @@ button:disabled {
   border: 1.5px solid transparent;
   text-align: center;
 }
-
 .badge.t1 { background: rgba(7, 90, 155, 0.85); }
 .badge.active { background: var(--gold); color: #172319; border-color: #fff; }
 .badge.dealer { outline: 2px solid var(--gold); }
-.badge .name { font-weight: 800; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
+.badge .name {
+  font-weight: 800;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
 .badge .sub { font-size: 9px; opacity: 0.9; }
 
 /* CARD & HAND DISPLAY */
@@ -238,7 +267,6 @@ button:disabled {
   scrollbar-width: none;
 }
 .hand-container::-webkit-scrollbar { display: none; }
-
 .hand {
   display: flex;
   justify-content: center;
@@ -246,7 +274,6 @@ button:disabled {
   margin: 0 auto;
   padding: 0 10px;
 }
-
 .card {
   position: relative;
   flex: 0 0 auto;
@@ -261,7 +288,6 @@ button:disabled {
   overflow: hidden;
   border: 1px solid #aaa;
 }
-
 .card img {
   width: 100%;
   height: 100%;
@@ -269,28 +295,26 @@ button:disabled {
   display: block;
   pointer-events: none;
 }
-
 .card:first-child { margin-left: 0; }
-
 .card.playable {
   border: 2px solid var(--gold);
   box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.5);
   cursor: pointer;
 }
-
-.card.playable:active {
-  transform: translateY(-8px);
-}
-
+.card.playable:active { transform: translateY(-8px); }
 .card.disabled {
   opacity: 0.4;
   filter: grayscale(40%);
 }
-
 .card.small {
-  width: 38px;
-  height: 54px;
+  width: clamp(26px, 8vw, 34px);
+  height: clamp(37px, 11vw, 48px);
   margin: 0;
+}
+.reveal-hand .card.small {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 7;
 }
 
 /* MODALS & OVERLAYS */
@@ -304,7 +328,6 @@ button:disabled {
   padding: 12px;
   z-index: 100;
 }
-
 .dialog {
   width: 100%;
   max-width: 400px;
@@ -313,16 +336,64 @@ button:disabled {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  max-height: 85vh;
+  max-height: 92vh;
   overflow-y: auto;
 }
 
+/* बोली वाले popup में खिलाड़ी के सभी 5 कार्ड साफ दिखें */
+.bid-dialog {
+  max-width: 520px;
+  padding: 14px;
+}
+.bid-hand-title {
+  margin: 8px 0 6px;
+  font-size: 13px;
+  color: #dbe8df;
+  font-weight: 700;
+}
+.bid-hand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(4px, 1.5vw, 10px);
+  width: 100%;
+  margin: 8px 0 14px;
+}
+.bid-hand .card {
+  width: clamp(0px, calc((100vw - 88px) / 5), 76px);
+  height: auto;
+  aspect-ratio: 5 / 7;
+  margin-left: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 76px;
+}
+.bid-hand .card img { object-fit: contain; }
+.trump-hand {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  margin: 8px 0 14px;
+}
+.trump-hand .card {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 7;
+  margin: 0;
+  min-width: 0;
+}
+.trump-hand .card img { object-fit: contain; }
+.bid-dialog .actions button { min-height: 44px; }
+@media (max-width: 360px) {
+  .bid-dialog { padding: 10px; }
+  .bid-hand { gap: 3px; }
+}
 .dialog h2 {
   margin: 0 0 10px;
   font-size: 16px;
   color: var(--gold);
 }
-
 .dialog input, .dialog select {
   width: 100%;
   padding: 10px;
@@ -332,25 +403,21 @@ button:disabled {
   border-radius: 6px;
   margin: 6px 0 12px;
 }
-
 .actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
 }
-
 .secondary {
   background: #dbe8df;
   color: #132b24;
 }
-
 .suits {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin: 12px 0;
 }
-
 .suitbtn {
   font-size: 14px;
   padding: 10px 0;
@@ -359,9 +426,7 @@ button:disabled {
   border-radius: 6px;
   font-weight: bold;
 }
-
 .suitbtn.red { color: var(--red); }
-
 .score-table {
   width: 100%;
   border-collapse: collapse;
@@ -369,17 +434,14 @@ button:disabled {
   text-align: center;
   font-size: 10px;
 }
-
 .score-table th, .score-table td {
   border: 1px solid #527461;
   padding: 5px 3px;
 }
-
 .score-table th {
   background: var(--bg-dark);
   color: var(--gold);
 }
-
 .hidden { display: none !important; }
 </style>
 </head>
@@ -413,18 +475,22 @@ button:disabled {
 <div class="track">
   <span id="gamePill" class="pill">गेम: 1</span>
   <span id="dealerPill" class="pill">डीलर: —</span>
-  <span id="trumpPill" class="pill">हुकुम: —</span>
+  <span id="trumpPill" class="pill">ट्रंप: —</span>
+  <span id="bidPill" class="pill">बोली: —</span>
   <span id="trickLabel" class="pill">1/13</span>
 </div>
 
 <div id="status" class="status">खिलाड़ियों का इंतज़ार है...</div>
+<div id="lobbyControls" class="dialog hidden" style="margin:0 auto 8px;max-width:400px;"></div>
+<div id="fullHouseAction" class="actions" style="justify-content:center;"></div>
+<div id="fullHouseReveal" class="full-house-reveal hidden"></div>
 
 <main class="table">
   <div class="north" id="badge2"></div>
   <div class="middle">
     <div class="side" id="badge1"></div>
     <section class="arena">
-      <div class="arena-label">वर्तमान हाथ</div>
+      <div class="arena-label">पिछली लंबित चाल / वर्तमान चाल</div>
       <div id="trickCards" class="trick-cards"></div>
     </section>
     <div class="side" id="badge3"></div>
@@ -454,9 +520,15 @@ let roomData = null;
 
 const $ = id => document.getElementById(id);
 
-function getRankCode(v) { return v === 10 ? '0' : v === 11 ? 'J' : v === 12 ? 'Q' : v === 13 ? 'K' : v === 14 ? 'A' : String(v); }
-function getRankDisplay(v) { return v === 11 ? 'J' : v === 12 ? 'Q' : v === 13 ? 'K' : v === 14 ? 'A' : String(v); }
-function getImageUrl(value, suitCode) { return `https://deckofcardsapi.com/static/img/${getRankCode(value)}${suitCode}.png`; }
+function getRankCode(v) {
+  return v === 10 ? '0' : v === 11 ? 'J' : v === 12 ? 'Q' : v === 13 ? 'K' : v === 14 ? 'A' : String(v);
+}
+function getRankDisplay(v) {
+  return v === 11 ? 'J' : v === 12 ? 'Q' : v === 13 ? 'K' : v === 14 ? 'A' : String(v);
+}
+function getImageUrl(value, suitCode) {
+  return `https://deckofcardsapi.com/static/img/${getRankCode(value)}${suitCode}.png`;
+}
 
 function cardHtml(c, small=false, playable=false, disabled=false) {
   const suit = SUITS[c.suit];
@@ -492,8 +564,57 @@ function render() {
   const myPlayer = getMyPlayer();
 
   if (roomData.gameState === 'LOBBY') {
-    $("status").textContent = `खिलाड़ियों का इंतज़ार जारी है (${roomData.players.length}/4)...`;
-    if (roomData.players.length < 4) return;
+    $("status").textContent = roomData.roomMessage ||
+      `खिलाड़ियों का इंतज़ार जारी है (${roomData.players.length}/4)...`;
+  }
+  const lobbyControls = $("lobbyControls");
+  if (roomData.gameState === 'LOBBY') {
+    const isHost = myPlayer && roomData.hostId === myPlayer.id;
+    const teammates = roomData.players.filter(player =>
+      player.id !== roomData.hostId
+    );
+    if (isHost) {
+      lobbyControls.classList.remove("hidden");
+      lobbyControls.innerHTML = `
+        <h2>टीम चुनें और गेम शुरू करें</h2>
+        <p style="font-size:12px;">आप किस खिलाड़ी को अपना साथी बनाना चाहते हैं?</p>
+        <select id="teammateSelect" ${roomData.players.length !== 4 ? "disabled" : ""}>
+          <option value="">साथी चुनें</option>
+          ${teammates.map(player => `
+            <option value="${player.id}" ${roomData.selectedPartnerId === player.id ? "selected" : ""}>
+              ${player.name}
+            </option>
+          `).join("")}
+        </select>
+        <p style="font-size:12px;">
+          ${roomData.selectedPartnerId
+            ? `टीम 1: ${myPlayer.name} और ${roomData.players.find(player => player.id === roomData.selectedPartnerId).name}. बाकी दोनों खिलाड़ी टीम 2 में होंगे।`
+            : "बाकी दो खिलाड़ी आपकी विरोधी टीम होंगे।"}
+        </p>
+        <button id="startGameBtn" style="width:100%;"
+          ${roomData.players.length !== 4 || !roomData.selectedPartnerId ? "disabled" : ""}>
+          गेम शुरू करें (${roomData.players.length}/4)
+        </button>
+      `;
+      const teammateSelect = $("teammateSelect");
+      teammateSelect.onchange = () => {
+        if (teammateSelect.value) {
+          socket.emit('selectTeammate', {
+            roomCode: myRoomCode,
+            teammateId: teammateSelect.value
+          });
+        }
+      };
+      $("startGameBtn").onclick = () => {
+        socket.emit('startGame', {roomCode: myRoomCode});
+      };
+    } else {
+      lobbyControls.classList.add("hidden");
+      lobbyControls.innerHTML = "";
+    }
+  } else {
+    lobbyControls.classList.add("hidden");
+    lobbyControls.innerHTML = "";
   }
 
   const dealer = roomData.players[roomData.dealerIndex];
@@ -504,33 +625,89 @@ function render() {
   $("teamGameWins2").textContent = roomData.teamGameWins[1];
 
   if (roomData.gameState === 'AUCTION') {
-    $("status").textContent = `बोली प्रक्रिया: ${roomData.players[roomData.auctionTurnIndex].name} की बारी`;
+    const bidderTurn = roomData.players[roomData.auctionTurnIndex];
+    $("status").textContent = `बोली प्रक्रिया: ${bidderTurn ? bidderTurn.name : 'खिलाड़ी'} की बारी`;
   } else if (roomData.gameState === 'TRUMP_SELECT') {
-    $("status").textContent = `हुकुम चुना जा रहा है...`;
+    const bidder = roomData.players[roomData.bidderIndex];
+    $("status").textContent = roomData.fullHouse
+      ? `${bidder ? bidder.name : 'खिलाड़ी'} ने Full House (खुल्ली) कहा है और ट्रंप चुन रहे हैं।`
+      : bidder
+        ? `${bidder.name} ट्रंप का रंग चुन रहे हैं।`
+        : "ट्रंप का चुनाव जारी...";
   } else if (roomData.gameState === 'PLAYING') {
-    $("status").textContent = `बारी: ${roomData.players[roomData.turnIndex].name}`;
+    const current = roomData.players[roomData.turnIndex];
+    $("status").textContent = roomData.fullHouse
+      ? `Full House (खुल्ली): ${roomData.players[roomData.fullHouse.callerSeat].name} की टीम को सभी 13 चालें जीतनी हैं। ${current ? `बारी: ${current.name}` : ''}`
+      : current ? `बारी: ${current.name}` : "खेल जारी...";
   } else if (roomData.gameState === 'HAND_OVER') {
-    $("status").textContent = `राउंड समाप्त! वर्तमान स्कोर: ${roomData.gameScore}`;
+    $("status").textContent = roomData.fullHouse
+      ? `${roomData.roundMessage || `Full House ${roomData.fullHouse.result === 'SUCCESS' ? 'सफल' : 'असफल'}`} वर्तमान स्कोर: ${roomData.gameScore}`
+      : roomData.roundMessage || `राउंड समाप्त! वर्तमान स्कोर: ${roomData.gameScore}`;
   } else if (roomData.gameState === 'MATCH_OVER') {
-    $("status").textContent = `🏆 मैच समाप्त! टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!`;
+    $("status").textContent = roomData.roundMessage ||
+      `🏆 मैच समाप्त! टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!`;
   }
 
   $("trickLabel").textContent = `${roomData.trickNo}/13`;
-  $("trumpPill").textContent = roomData.trumpSuit === null ? "हुकुम: —" : `${SUITS[roomData.trumpSuit].symbol}`;
+  $("trumpPill").textContent = roomData.trumpSuit === null
+    ? "ट्रंप: —"
+    : `ट्रंप: ${SUITS[roomData.trumpSuit].symbol}`;
+  const bidder = roomData.players[roomData.bidderIndex];
+  $("bidPill").textContent = roomData.fullHouse &&
+    roomData.fullHouse.phase === 'INITIAL'
+    ? `बोली: खुल्ली — ${roomData.players[roomData.fullHouse.callerSeat].name}`
+    : bidder && roomData.bidderIndex !== -1
+      ? `सर्वोच्च बोली: ${roomData.highestBid} — ${bidder.name}`
+      : `सर्वोच्च बोली: ${roomData.highestBid} — अभी कोई बोली नहीं`;
+
+  const canCallLateFullHouse =
+    roomData.gameState === 'PLAYING' &&
+    !roomData.fullHouse &&
+    roomData.trickNo === 1 &&
+    roomData.currentTrick.length === 0 &&
+    roomData.pendingTricks.length === 0;
+  $("fullHouseAction").innerHTML = canCallLateFullHouse
+    ? '<button id="lateFullHouseBtn">Full House (खुल्ली) कहें</button>'
+    : "";
+  if (canCallLateFullHouse) {
+    $("lateFullHouseBtn").onclick = () => {
+      socket.emit('callFullHouse', {roomCode: myRoomCode});
+    };
+  }
+
+  const revealedHand = Array.isArray(roomData.revealedPartnerHand)
+    ? roomData.revealedPartnerHand
+    : [];
+  const revealEl = $("fullHouseReveal");
+  if (roomData.fullHouse && revealedHand.length > 0) {
+    const partner = roomData.players[roomData.fullHouse.partnerSeat];
+    revealEl.classList.remove("hidden");
+    revealEl.innerHTML = `
+      <div class="full-house-reveal-title">Full House साथी ${partner ? partner.name : ''} के कार्ड</div>
+      <div class="reveal-hand">${revealedHand.map(card => cardHtml(card, true)).join("")}</div>
+    `;
+  } else {
+    revealEl.classList.add("hidden");
+    revealEl.innerHTML = "";
+  }
 
   const mySeat = myPlayer ? myPlayer.seatIndex : 0;
+
   for (let relative = 0; relative < 4; relative++) {
     const actualSeat = (mySeat + relative) % 4;
     const player = roomData.players[actualSeat];
     const badgeEl = $(`badge${relative}`);
 
     if (player) {
-      const isTurn = roomData.gameState === 'AUCTION' ? roomData.auctionTurnIndex === actualSeat : roomData.turnIndex === actualSeat;
+      const isTurn = roomData.gameState === 'AUCTION'
+        ? roomData.auctionTurnIndex === actualSeat
+        : roomData.gameState === 'PLAYING' &&
+          roomData.turnIndex === actualSeat;
       const isDealer = roomData.dealerIndex === actualSeat;
-      const sub = roomData.gameState === 'AUCTION' 
+      const sub = roomData.gameState === 'AUCTION'
         ? (player.hasPassed ? "पास" : player.currentBid ? `बोली:${player.currentBid}` : "इंतज़ार")
         : `जीत:${player.tricksWon}`;
-      
+
       badgeEl.innerHTML = `
         <div class="badge ${player.teamId === 1 ? "t1" : ""} ${isTurn ? "active" : ""} ${isDealer ? "dealer" : ""}">
           <div class="name">${player.name} ${actualSeat === mySeat ? "(आप)" : ""}</div>
@@ -542,21 +719,53 @@ function render() {
     }
   }
 
-  $("trickCards").innerHTML = roomData.currentTrick.map(play => `
-    <div class="played">
-      <span>${roomData.players[play.playerIndex].name}</span>
-      ${cardHtml(play.card, true)}
-    </div>
-  `).join("");
+  const currentTrick = Array.isArray(roomData.currentTrick) ? roomData.currentTrick : [];
+  const pendingTricks = Array.isArray(roomData.pendingTricks)
+    ? roomData.pendingTricks
+    : [];
+  const renderPlays = plays => plays.map(play => {
+    const player = roomData.players[play.playerIndex];
+    return `
+      <div class="played" title="${player ? player.name : 'खिलाड़ी'}">
+        <span>${player ? player.name : 'खिलाड़ी'}</span>
+        ${cardHtml(play.card, true)}
+      </div>
+    `;
+  }).join("");
+  const latestPendingTrick = pendingTricks.length
+    ? pendingTricks[pendingTricks.length - 1]
+    : null;
+  const pendingTrickHtml = [];
+  if (latestPendingTrick) {
+    const trick = latestPendingTrick;
+    const winner = roomData.players[trick.winnerSeat];
+    pendingTrickHtml.push(`
+      <div class="trick-group">
+        <div class="trick-heading">चाल ${trick.trickNo} — ${winner ? winner.name : 'खिलाड़ी'} जीते</div>
+        <div class="trick-plays">${renderPlays(trick.plays)}</div>
+      </div>
+    `);
+  }
+  if (currentTrick.length > 0) {
+    pendingTrickHtml.push(`
+      <div class="trick-group">
+        <div class="trick-heading">वर्तमान चाल</div>
+        <div class="trick-plays">${renderPlays(currentTrick)}</div>
+      </div>
+    `);
+  }
+  $("trickCards").innerHTML = pendingTrickHtml.join("");
 
   if (myPlayer) {
-    const isMyTurn = roomData.gameState === 'PLAYING' && roomData.turnIndex === myPlayer.seatIndex;
+    const isMyTurn = roomData.gameState === 'PLAYING' &&
+      roomData.turnIndex === myPlayer.seatIndex;
     let validMoves = [];
 
     if (isMyTurn) {
-      if (roomData.currentTrick.length === 0) validMoves = [...myPlayer.hand];
-      else {
-        const led = roomData.currentTrick[0].card.suit;
+      if (currentTrick.length === 0) {
+        validMoves = [...myPlayer.hand];
+      } else {
+        const led = currentTrick[0].card.suit;
         const same = myPlayer.hand.filter(c => c.suit === led);
         validMoves = same.length ? same : [...myPlayer.hand];
       }
@@ -567,11 +776,14 @@ function render() {
       return cardHtml(c, false, ok, isMyTurn && !ok);
     }).join("");
 
-    document.querySelectorAll(".card.playable").forEach(el => {
+    document.querySelectorAll("#hand .card.playable").forEach(el => {
       el.onclick = () => {
         const suit = Number(el.dataset.suit);
         const val = Number(el.dataset.val);
-        socket.emit('playCard', { roomCode: myRoomCode, card: { suit, value: val } });
+        socket.emit('playCard', {
+          roomCode: myRoomCode,
+          card: {suit, value: val}
+        });
       };
     });
   }
@@ -583,26 +795,64 @@ function handleDialogs(myPlayer) {
   if (!myPlayer) return;
   const modalRoot = $("modalRoot");
 
-  if (roomData.gameState === 'AUCTION' && roomData.auctionTurnIndex === myPlayer.seatIndex) {
-    const min = Math.max(8, roomData.highestBid + 1);
+  if (roomData.gameState === 'AUCTION' &&
+      roomData.auctionTurnIndex === myPlayer.seatIndex) {
+    const min = roomData.bidderIndex === -1
+      ? 8
+      : roomData.highestBid + 1;
+    const options = Array.from(
+      {length: Math.max(0, 14 - min)},
+      (_, i) => `<option value="${min+i}">${min+i} हाथ</option>`
+    ).join("");
+
     modalRoot.innerHTML = `
       <div class="overlay">
-        <div class="dialog">
+        <div class="dialog bid-dialog">
           <h2>अपनी बोली लगाएँ</h2>
-          <p style="font-size:12px;">सर्वोच्च बोली: ${roomData.highestBid} हाथ</p>
-          <select id="bidSelect">${Array.from({length: 14 - min}, (_, i) => `<option value="${min+i}">${min+i} हाथ</option>`).join("")}</select>
+          <p style="font-size:12px;">
+            ${roomData.bidderIndex === -1
+              ? "अभी कोई बोली नहीं — न्यूनतम बोली 8 हाथ"
+              : `सर्वोच्च बोली: ${roomData.highestBid} हाथ — ${roomData.players[roomData.bidderIndex].name}`}
+          </p>
+          <div class="bid-hand-title">आपके 5 कार्ड</div>
+          <div class="bid-hand">
+            ${myPlayer.hand.slice(0, 5).map(c => cardHtml(c)).join("")}
+          </div>
+          <label for="bidSelect" style="font-size:12px;">कितने हाथ जीतने की बोली लगाएँ?</label>
+          <select id="bidSelect">${options}</select>
           <div class="actions">
             <button id="passBtn" class="secondary" style="flex:1;">पास करें</button>
             <button id="bidBtn" style="flex:1;">बोली लगाएँ</button>
+          </div>
+          <div class="actions" style="margin-top:8px;">
+            <button id="fullHouseBtn" class="secondary" style="width:100%;">Full House (खुल्ली) कहें</button>
           </div>
         </div>
       </div>
     `;
 
-    $("passBtn").onclick = () => { socket.emit('placeBid', { roomCode: myRoomCode, passed: true }); modalRoot.innerHTML = ""; };
+    const bidSelect = $("bidSelect");
+    if (bidSelect && bidSelect.options.length === 0) {
+      $("bidBtn").disabled = true;
+    }
+
+    $("passBtn").onclick = () => {
+      socket.emit('placeBid', {roomCode: myRoomCode, passed: true});
+      modalRoot.innerHTML = "";
+    };
+
     $("bidBtn").onclick = () => {
-      const b = Number($("bidSelect").value);
-      socket.emit('placeBid', { roomCode: myRoomCode, bid: b, passed: false });
+      const select = $("bidSelect");
+      if (!select || !select.value) return;
+      socket.emit('placeBid', {
+        roomCode: myRoomCode,
+        bid: Number(select.value),
+        passed: false
+      });
+      modalRoot.innerHTML = "";
+    };
+    $("fullHouseBtn").onclick = () => {
+      socket.emit('callFullHouse', {roomCode: myRoomCode});
       modalRoot.innerHTML = "";
     };
   } else if (roomData.gameState === 'TRUMP_SELECT') {
@@ -610,37 +860,58 @@ function handleDialogs(myPlayer) {
       modalRoot.innerHTML = `
         <div class="overlay">
           <div class="dialog">
-            <h2>हुकुम का रंग चुनें</h2>
-            <div class="suits">${SUITS.map((s,i) => `<button class="suitbtn ${s.red ? "red" : ""}" onclick="selectTrump(${i})">${s.symbol}${s.name}</button>`).join("")}</div>
+            <h2>ट्रंप का रंग चुनें</h2>
+            <div class="bid-hand-title">आपके कार्ड</div>
+            <div class="trump-hand">
+              ${myPlayer.hand.map(c => cardHtml(c)).join("")}
+            </div>
+            <div class="suits">
+              ${SUITS.map((s,i) =>
+                `<button class="suitbtn ${s.red ? "red" : ""}" onclick="selectTrump(${i})">${s.symbol} ${s.name}</button>`
+              ).join("")}
+            </div>
           </div>
         </div>
       `;
     } else {
+      const bidder = roomData.players[roomData.bidderIndex];
       modalRoot.innerHTML = `
         <div class="overlay">
           <div class="dialog">
-            <h2>हुकुम का चुनाव जारी...</h2>
-            <p style="font-size:12px;">${roomData.players[roomData.bidderIndex].name} हुकुम का रंग चुन रहे हैं।</p>
+            <h2>ट्रंप का चुनाव जारी...</h2>
+            <p style="font-size:12px;">${bidder ? bidder.name : 'खिलाड़ी'} ट्रंप का रंग चुन रहे हैं।</p>
           </div>
         </div>
       `;
     }
   } else if (roomData.gameState === 'HAND_OVER') {
+    const bidder = roomData.players[roomData.bidderIndex];
+    const nextDealer = roomData.players[roomData.dealerIndex];
+
     modalRoot.innerHTML = `
       <div class="overlay">
         <div class="dialog">
           <h2>राउंड समाप्त</h2>
-          <p style="font-size:12px;">बोली: <b>${roomData.highestBid}</b> हाथ (${roomData.players[roomData.bidderIndex].name} द्वारा)</p>
+          ${roomData.roundMessage
+            ? `<p style="font-size:13px;font-weight:bold;color:var(--gold);">${roomData.roundMessage}</p>`
+            : ""}
+          ${roomData.fullHouse
+            ? `<p style="font-size:12px;">Full House (खुल्ली): <b>${roomData.fullHouse.result === 'SUCCESS' ? 'सफल' : 'असफल'}</b> — ${roomData.players[roomData.fullHouse.callerSeat].name} की टीम को ${roomData.fullHouse.bajiTeam === roomData.players[roomData.fullHouse.callerSeat].teamId ? 'एक बाजी मिली' : 'एक बाजी गंवानी पड़ी'}।</p>`
+            : `<p style="font-size:12px;">बोली: <b>${roomData.highestBid}</b> हाथ (${bidder ? bidder.name : 'खिलाड़ी'} द्वारा)</p>`}
+          ${roomData.fullHouse && roomData.fullHouse.phase === 'LATE'
+            ? `<p style="font-size:12px;">सामान्य बोली: <b>${roomData.highestBid}</b> हाथ (${bidder ? bidder.name : 'खिलाड़ी'} द्वारा)</p>`
+            : ""}
           <p style="font-size:12px;"><b>अपडेटेड स्कोर: ${roomData.gameScore}</b></p>
-          <p style="font-size:12px;">अगले डीलर: <b>${roomData.players[roomData.dealerIndex].name}</b></p>
+          <p style="font-size:12px;">अगले डीलर: <b>${nextDealer ? nextDealer.name : '—'}</b></p>
           <div class="actions">
             <button id="nextHandBtn" style="width:100%;">अगला राउंड शुरू करें</button>
           </div>
         </div>
       </div>
     `;
+
     $("nextHandBtn").onclick = () => {
-      socket.emit('nextHand', { roomCode: myRoomCode });
+      socket.emit('nextHand', {roomCode: myRoomCode});
       modalRoot.innerHTML = "";
     };
   } else if (roomData.gameState === 'MATCH_OVER') {
@@ -648,6 +919,9 @@ function handleDialogs(myPlayer) {
       <div class="overlay">
         <div class="dialog" style="text-align:center;">
           <h2>🏆 मैच समाप्त</h2>
+          ${roomData.roundMessage
+            ? `<p style="font-size:13px;font-weight:bold;color:var(--gold);">${roomData.roundMessage}</p>`
+            : ""}
           <h2 style="color:var(--gold);margin:10px 0;">टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!</h2>
           <div class="actions" style="justify-content:center;">
             <button onclick="location.reload()">नया मैच खेलें</button>
@@ -662,12 +936,15 @@ function handleDialogs(myPlayer) {
 
 function showScoreboardModal() {
   if (!roomData) return;
+
   const historyRows = roomData.scoreHistory.map(h => `
     <tr>
       <td>G${h.game}-H${h.hand}</td>
       <td>${h.dealer}</td>
-      <td>${h.bidder}(${h.bid})</td>
-      <td>${h.startScore}➔<b>${h.endScore}</b></td>
+      <td>${h.fullHouseResult
+        ? `Full House: ${h.fullHouseCaller} (${h.fullHouseResult === 'SUCCESS' ? 'सफल' : 'असफल'})${typeof h.bid === 'number' ? `; बोली ${h.bidder} (${h.bid})` : ''}`
+        : `${h.bidder} (${h.bid})`}</td>
+      <td>${h.startScore} ➔ <b>${h.endScore}</b></td>
     </tr>
   `).join("");
 
@@ -685,7 +962,9 @@ function showScoreboardModal() {
             </tr>
           </thead>
           <tbody>
-            ${historyRows.length > 0 ? historyRows : '<tr><td colspan="4">अभी कोई राउंड नहीं हुआ है</td></tr>'}
+            ${historyRows.length > 0
+              ? historyRows
+              : '<tr><td colspan="4">अभी कोई राउंड नहीं हुआ है</td></tr>'}
           </tbody>
         </table>
         <p style="font-size:11px;"><b>वर्तमान कुल स्कोर:</b> ${roomData.gameScore} / 52</p>
@@ -698,7 +977,7 @@ function showScoreboardModal() {
 }
 
 window.selectTrump = (suitIdx) => {
-  socket.emit('selectTrump', { roomCode: myRoomCode, suitIndex: suitIdx });
+  socket.emit('selectTrump', {roomCode: myRoomCode, suitIndex: suitIdx});
   $("modalRoot").innerHTML = "";
 };
 </script>
