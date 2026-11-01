@@ -194,11 +194,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   justify-items: center;
 }
 .full-house-reveal {
-  margin: 4px 8px;
-  padding: 6px;
+  margin: 4px auto;
+  padding: 6px 8px;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.35);
   text-align: center;
+  width: min(100% - 16px, 600px);
+  overflow: hidden;
 }
 .full-house-reveal-title {
   margin-bottom: 5px;
@@ -207,12 +209,17 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   font-weight: 700;
 }
 .reveal-hand {
-  display: grid;
-  grid-template-columns: repeat(13, minmax(0, 1fr));
+  display: flex;
+  justify-content: flex-start;
   gap: 3px;
+  overflow-x: auto;
+  padding: 0 0 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 .reveal-hand .card {
-  width: 100%;
+  flex: 0 0 clamp(22px, 6.6vw, 36px);
+  width: clamp(22px, 6.6vw, 36px);
   height: auto;
   aspect-ratio: 5 / 7;
   min-width: 0;
@@ -312,7 +319,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   margin: 0;
 }
 .reveal-hand .card.small {
-  width: 100%;
+  flex-basis: clamp(22px, 6.6vw, 36px);
+  width: clamp(22px, 6.6vw, 36px);
   height: auto;
   aspect-ratio: 5 / 7;
 }
@@ -442,6 +450,30 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: var(--bg-dark);
   color: var(--gold);
 }
+.voice-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.voice-controls button {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+.voice-status {
+  color: #dbe8df;
+  font-size: 11px;
+}
+.remote-audio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
 .hidden { display: none !important; }
 </style>
 </head>
@@ -464,6 +496,14 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   <div class="brand">♠ साझा स्कोर गेम</div>
   <span id="roomLabel" style="font-weight:bold;color:var(--gold);font-size:12px;">रूम: —</span>
 </header>
+
+<div id="voiceControls" class="voice-controls hidden">
+  <button id="voiceStartBtn" type="button">🎙️ आवाज़ चालू करें</button>
+  <button id="voiceMuteBtn" type="button" class="secondary hidden">म्यूट करें</button>
+  <button id="voiceLeaveBtn" type="button" class="secondary hidden">आवाज़ बंद करें</button>
+  <span id="voiceStatus" class="voice-status" aria-live="polite">माइक बंद है</span>
+</div>
+<div id="remoteAudio" class="remote-audio" aria-hidden="true"></div>
 
 <div class="scorebar">
   <span class="team1">टीम 1 (जीत: <b id="teamGameWins1">0</b>/3)</span>
@@ -507,6 +547,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 "use strict";
 
 const socket = io();
+const SESSION_STORAGE_KEY = "callBreakRoomSession";
 const SUITS = [
   {name:"हुकुम (Spades)",symbol:"♠",code:"S",red:false},
   {name:"पान (Hearts)",symbol:"♥",code:"H",red:true},
@@ -517,8 +558,179 @@ const SUITS = [
 let myRoomCode = "";
 let myName = "";
 let roomData = null;
+let reconnectToken = "";
+let hasRoomSession = false;
+let voiceStream = null;
+let voiceActive = false;
+const voicePeers = new Map();
 
 const $ = id => document.getElementById(id);
+
+function updateVoiceUi(message) {
+  const joined = Boolean(getMyPlayer());
+  $("voiceControls").classList.toggle("hidden", !joined);
+  $("voiceStartBtn").classList.toggle("hidden", voiceActive);
+  $("voiceMuteBtn").classList.toggle("hidden", !voiceActive);
+  $("voiceLeaveBtn").classList.toggle("hidden", !voiceActive);
+
+  if (message) {
+    $("voiceStatus").textContent = message;
+  } else if (!voiceActive) {
+    $("voiceStatus").textContent = "माइक बंद है";
+  } else {
+    const audioTrack = voiceStream && voiceStream.getAudioTracks()[0];
+    const connectedPeers = [...voicePeers.values()].filter(
+      peer => peer.pc.connectionState === "connected"
+    ).length;
+    $("voiceMuteBtn").textContent =
+      audioTrack && !audioTrack.enabled ? "अनम्यूट करें" : "म्यूट करें";
+    $("voiceStatus").textContent = audioTrack && !audioTrack.enabled
+      ? `माइक म्यूट है · ${connectedPeers} खिलाड़ी जुड़े`
+      : `आवाज़ चालू · ${connectedPeers} खिलाड़ी जुड़े`;
+  }
+}
+
+function sendVoiceSignal(peerId, signal) {
+  socket.emit("voice:signal", {
+    roomCode: myRoomCode,
+    to: peerId,
+    ...signal
+  });
+}
+
+function createVoicePeer(peerId) {
+  if (!voiceActive || voicePeers.has(peerId)) return voicePeers.get(peerId);
+
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+  });
+  const peer = { pc, pendingCandidates: [], audio: null };
+  voicePeers.set(peerId, peer);
+
+  voiceStream.getTracks().forEach(track => pc.addTrack(track, voiceStream));
+  pc.onicecandidate = event => {
+    if (event.candidate && voiceActive) {
+      sendVoiceSignal(peerId, { candidate: event.candidate });
+    }
+  };
+  pc.ontrack = event => {
+    if (!voiceActive || !event.streams[0]) return;
+    if (!peer.audio) {
+      peer.audio = document.createElement("audio");
+      peer.audio.autoplay = true;
+      peer.audio.playsInline = true;
+      $("remoteAudio").appendChild(peer.audio);
+    }
+    peer.audio.srcObject = event.streams[0];
+    peer.audio.play().catch(() => {
+      updateVoiceUi("दूसरों की आवाज़ सुनने के लिए पेज पर टैप करें");
+    });
+  };
+  pc.onconnectionstatechange = () => updateVoiceUi();
+
+  return peer;
+}
+
+async function createVoiceOffer(peerId, peer) {
+  try {
+    const offer = await peer.pc.createOffer();
+    await peer.pc.setLocalDescription(offer);
+    sendVoiceSignal(peerId, { description: peer.pc.localDescription });
+  } catch (error) {
+    console.error("Could not start voice connection:", error);
+    updateVoiceUi("आवाज़ कनेक्शन शुरू नहीं हो सका");
+  }
+}
+
+function connectVoicePeer(peerId) {
+  if (!voiceActive || peerId === socket.id) return;
+  const peer = createVoicePeer(peerId);
+  if (peer && socket.id.localeCompare(peerId) < 0 && !peer.pc.localDescription) {
+    createVoiceOffer(peerId, peer);
+  }
+}
+
+async function applyVoiceSignal(payload) {
+  if (!payload || typeof payload !== "object") return;
+  const { from, description, candidate } = payload;
+  if (!voiceActive || typeof from !== "string") return;
+  const peer = createVoicePeer(from);
+  if (!peer) return;
+
+  try {
+    if (description) {
+      await peer.pc.setRemoteDescription(description);
+      while (peer.pendingCandidates.length) {
+        await peer.pc.addIceCandidate(peer.pendingCandidates.shift());
+      }
+
+      if (description.type === "offer") {
+        const answer = await peer.pc.createAnswer();
+        await peer.pc.setLocalDescription(answer);
+        sendVoiceSignal(from, { description: peer.pc.localDescription });
+      }
+    } else if (candidate) {
+      if (peer.pc.remoteDescription) {
+        await peer.pc.addIceCandidate(candidate);
+      } else {
+        peer.pendingCandidates.push(candidate);
+      }
+    }
+  } catch (error) {
+    console.error("Could not establish voice connection:", error);
+    updateVoiceUi("आवाज़ कनेक्शन में समस्या हुई");
+  }
+}
+
+function closeVoicePeer(peerId) {
+  const peer = voicePeers.get(peerId);
+  if (!peer) return;
+  peer.pc.close();
+  if (peer.audio) {
+    peer.audio.srcObject = null;
+    peer.audio.remove();
+  }
+  voicePeers.delete(peerId);
+}
+
+function stopVoice(notifyServer = true) {
+  if (notifyServer && voiceActive) {
+    socket.emit("voice:leave", { roomCode: myRoomCode });
+  }
+  voiceActive = false;
+  if (voiceStream) {
+    voiceStream.getTracks().forEach(track => track.stop());
+    voiceStream = null;
+  }
+  [...voicePeers.keys()].forEach(closeVoicePeer);
+  updateVoiceUi();
+}
+
+async function startVoice() {
+  if (!roomData || !getMyPlayer()) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    updateVoiceUi("माइक के लिए सुरक्षित HTTPS कनेक्शन ज़रूरी है");
+    return;
+  }
+
+  $("voiceStartBtn").disabled = true;
+  try {
+    voiceStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
+    });
+    voiceActive = true;
+    socket.emit("voice:join", { roomCode: myRoomCode });
+    updateVoiceUi("माइक चालू · खिलाड़ियों से जुड़ रहे हैं");
+  } catch (error) {
+    console.error("Could not access microphone:", error);
+    updateVoiceUi(error.name === "NotAllowedError"
+      ? "माइक की अनुमति दें और फिर कोशिश करें"
+      : "माइक चालू नहीं हो सका");
+  } finally {
+    $("voiceStartBtn").disabled = false;
+  }
+}
 
 function getRankCode(v) {
   return v === 10 ? '0' : v === 11 ? 'J' : v === 12 ? 'Q' : v === 13 ? 'K' : v === 14 ? 'A' : String(v);
@@ -543,20 +755,127 @@ function cardHtml(c, small=false, playable=false, disabled=false) {
 $("joinGameBtn").onclick = () => {
   myName = $("playerNameInput").value.trim() || "खिलाड़ी";
   myRoomCode = $("roomCodeInput").value.trim().toUpperCase() || "ROOM1";
+  const savedSession = loadSavedSession();
+  reconnectToken = savedSession && savedSession.roomCode === myRoomCode
+    ? savedSession.reconnectToken
+    : "";
+  hasRoomSession = true;
+  saveRoomSession();
   $("loginModal").classList.add("hidden");
   $("roomLabel").textContent = `रूम: ${myRoomCode}`;
-  socket.emit('joinRoom', { roomCode: myRoomCode, playerName: myName });
+  if (socket.connected) joinRoom();
 };
 
+function loadSavedSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || "null");
+    return saved && typeof saved.roomCode === "string" &&
+      typeof saved.playerName === "string" &&
+      typeof saved.reconnectToken === "string"
+      ? saved
+      : null;
+  } catch (error) {
+    console.error("Could not read the saved game session:", error);
+    return null;
+  }
+}
+
+function saveRoomSession() {
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+      roomCode: myRoomCode,
+      playerName: myName,
+      reconnectToken
+    }));
+  } catch (error) {
+    console.error("Could not save the game reconnect session:", error);
+    $("status").textContent = "ऑटो-रीकनेक्ट सेव नहीं हो सका।";
+  }
+}
+
+function joinRoom() {
+  socket.emit("joinRoom", {
+    roomCode: myRoomCode,
+    playerName: myName,
+    reconnectToken
+  });
+}
+
 $("checkScoreBtn").onclick = () => showScoreboardModal();
+
+socket.on("connect", () => {
+  if (hasRoomSession) joinRoom();
+});
+socket.on("joinResult", result => {
+  if (result && result.ok && typeof result.reconnectToken === "string") {
+    reconnectToken = result.reconnectToken;
+    saveRoomSession();
+    return;
+  }
+
+  hasRoomSession = false;
+  reconnectToken = "";
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (error) {
+    console.error("Could not clear the saved game session:", error);
+  }
+  $("status").textContent = result && result.message
+    ? result.message
+    : "रूम में शामिल नहीं हो सके।";
+  $("loginModal").classList.remove("hidden");
+});
 
 socket.on('roomStateUpdate', (data) => {
   roomData = data;
   render();
+  updateVoiceUi();
 });
+
+socket.on("voice:peers", payload => {
+  if (payload && Array.isArray(payload.peers)) {
+    payload.peers.forEach(connectVoicePeer);
+  }
+});
+socket.on("voice:peerJoined", payload => {
+  if (payload && typeof payload.id === "string") connectVoicePeer(payload.id);
+});
+socket.on("voice:peerLeft", payload => {
+  if (payload && typeof payload.id === "string") closeVoicePeer(payload.id);
+});
+socket.on("voice:signal", applyVoiceSignal);
+socket.on("disconnect", () => {
+  stopVoice(false);
+  if (hasRoomSession) {
+    $("status").textContent = "कनेक्शन टूट गया है। अपने-आप फिर जुड़ने की कोशिश हो रही है...";
+  }
+});
+
+$("voiceStartBtn").onclick = startVoice;
+$("voiceMuteBtn").onclick = () => {
+  const audioTrack = voiceStream && voiceStream.getAudioTracks()[0];
+  if (audioTrack) {
+    audioTrack.enabled = !audioTrack.enabled;
+    updateVoiceUi();
+  }
+};
+$("voiceLeaveBtn").onclick = () => stopVoice();
 
 function getMyPlayer() {
   return roomData ? roomData.players.find(p => p.id === socket.id) : null;
+}
+
+const savedSession = loadSavedSession();
+if (savedSession) {
+  myRoomCode = savedSession.roomCode;
+  myName = savedSession.playerName;
+  reconnectToken = savedSession.reconnectToken;
+  hasRoomSession = true;
+  $("playerNameInput").value = myName;
+  $("roomCodeInput").value = myRoomCode;
+  $("loginModal").classList.add("hidden");
+  $("roomLabel").textContent = `रूम: ${myRoomCode}`;
+  $("status").textContent = "पिछले गेम से दोबारा जुड़ रहे हैं...";
 }
 
 function render() {
@@ -570,14 +889,19 @@ function render() {
   const lobbyControls = $("lobbyControls");
   if (roomData.gameState === 'LOBBY') {
     const isHost = myPlayer && roomData.hostId === myPlayer.id;
-    const teammates = roomData.players.filter(player =>
-      player.id !== roomData.hostId
-    );
+    const teammates = myPlayer
+      ? roomData.players.filter(player =>
+          player.seatIndex === (myPlayer.seatIndex + 2) % 4
+        )
+      : [];
     if (isHost) {
       lobbyControls.classList.remove("hidden");
       lobbyControls.innerHTML = `
         <h2>टीम चुनें और गेम शुरू करें</h2>
-        <p style="font-size:12px;">आप किस खिलाड़ी को अपना साथी बनाना चाहते हैं?</p>
+        <p style="font-size:12px;">
+          अपना आमने-सामने बैठने वाला साथी चुनें। खिलाड़ी 1 और 3 एक टीम में,
+          और खिलाड़ी 2 और 4 दूसरी टीम में होंगे।
+        </p>
         <select id="teammateSelect" ${roomData.players.length !== 4 ? "disabled" : ""}>
           <option value="">साथी चुनें</option>
           ${teammates.map(player => `
@@ -648,6 +972,14 @@ function render() {
       `🏆 मैच समाप्त! टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!`;
   }
 
+  const disconnectedPlayers = roomData.players
+    .filter(player => player.connected === false)
+    .map(player => player.name);
+  if (disconnectedPlayers.length) {
+    $("status").textContent +=
+      ` · ${disconnectedPlayers.join(", ")} का कनेक्शन टूट गया है; 5 मिनट तक इंतज़ार होगा।`;
+  }
+
   $("trickLabel").textContent = `${roomData.trickNo}/13`;
   $("trumpPill").textContent = roomData.trumpSuit === null
     ? "ट्रंप: —"
@@ -675,16 +1007,38 @@ function render() {
     };
   }
 
-  const revealedHand = Array.isArray(roomData.revealedPartnerHand)
-    ? roomData.revealedPartnerHand
+  const allRevealedHands = Array.isArray(roomData.revealedFullHouseHands)
+    ? roomData.revealedFullHouseHands
     : [];
+  const teammates = roomData.fullHouse
+    ? roomData.players.filter(player =>
+        player.seatIndex === roomData.fullHouse.callerSeat ||
+        player.seatIndex === roomData.fullHouse.partnerSeat
+      )
+    : [];
+  const myTeamIsInFullHouse = Boolean(
+    myPlayer &&
+    teammates.some(player => player.id === myPlayer.id)
+  );
+  const revealedHands = myTeamIsInFullHouse
+    ? allRevealedHands.filter(entry => entry.seat !== myPlayer.seatIndex)
+    : allRevealedHands;
   const revealEl = $("fullHouseReveal");
-  if (roomData.fullHouse && revealedHand.length > 0) {
-    const partner = roomData.players[roomData.fullHouse.partnerSeat];
+  if (roomData.fullHouse && revealedHands.some(entry => entry.hand.length > 0)) {
     revealEl.classList.remove("hidden");
     revealEl.innerHTML = `
-      <div class="full-house-reveal-title">Full House साथी ${partner ? partner.name : ''} के कार्ड</div>
-      <div class="reveal-hand">${revealedHand.map(card => cardHtml(card, true)).join("")}</div>
+      <div class="full-house-reveal-title">
+        ${myTeamIsInFullHouse
+          ? "आपके साथी के Full House कार्ड"
+          : "Full House के दोनों खिलाड़ियों के कार्ड"}
+      </div>
+      ${revealedHands.map(entry => {
+        const player = roomData.players[entry.seat];
+        return `
+          <div class="full-house-reveal-title">${player ? player.name : 'खिलाड़ी'}</div>
+          <div class="reveal-hand">${entry.hand.map(card => cardHtml(card, true)).join("")}</div>
+        `;
+      }).join("")}
     `;
   } else {
     revealEl.classList.add("hidden");
@@ -711,7 +1065,7 @@ function render() {
       badgeEl.innerHTML = `
         <div class="badge ${player.teamId === 1 ? "t1" : ""} ${isTurn ? "active" : ""} ${isDealer ? "dealer" : ""}">
           <div class="name">${player.name} ${actualSeat === mySeat ? "(आप)" : ""}</div>
-          <div class="sub">${sub} ${isDealer ? "🃏" : ""}</div>
+          <div class="sub">${player.connected === false ? "पुनः जुड़ रहे हैं" : sub} ${isDealer ? "🃏" : ""}</div>
         </div>
       `;
     } else {
@@ -824,6 +1178,7 @@ function handleDialogs(myPlayer) {
             <button id="passBtn" class="secondary" style="flex:1;">पास करें</button>
             <button id="bidBtn" style="flex:1;">बोली लगाएँ</button>
           </div>
+          <p id="bidFeedback" role="alert" style="color:#ffd166;font-size:12px;min-height:16px;"></p>
           <div class="actions" style="margin-top:8px;">
             <button id="fullHouseBtn" class="secondary" style="width:100%;">Full House (खुल्ली) कहें</button>
           </div>
@@ -836,20 +1191,43 @@ function handleDialogs(myPlayer) {
       $("bidBtn").disabled = true;
     }
 
+    const sendBidAction = payload => {
+      const passButton = $("passBtn");
+      const bidButton = $("bidBtn");
+      passButton.disabled = true;
+      bidButton.disabled = true;
+      $("bidFeedback").textContent = "बोली भेजी जा रही है...";
+      socket.timeout(7000).emit('placeBid', payload, (error, result) => {
+        if (error) {
+          $("bidFeedback").textContent =
+            "सर्वर से जवाब नहीं मिला। कनेक्शन जाँचकर फिर कोशिश करें।";
+          passButton.disabled = false;
+          bidButton.disabled = !bidSelect || bidSelect.options.length === 0;
+          return;
+        }
+        if (!result || !result.ok) {
+          $("bidFeedback").textContent =
+            result && result.message ? result.message : "बोली स्वीकार नहीं हुई।";
+          passButton.disabled = false;
+          bidButton.disabled = !bidSelect || bidSelect.options.length === 0;
+          return;
+        }
+        modalRoot.innerHTML = "";
+      });
+    };
+
     $("passBtn").onclick = () => {
-      socket.emit('placeBid', {roomCode: myRoomCode, passed: true});
-      modalRoot.innerHTML = "";
+      sendBidAction({roomCode: myRoomCode, passed: true});
     };
 
     $("bidBtn").onclick = () => {
       const select = $("bidSelect");
       if (!select || !select.value) return;
-      socket.emit('placeBid', {
+      sendBidAction({
         roomCode: myRoomCode,
         bid: Number(select.value),
         passed: false
       });
-      modalRoot.innerHTML = "";
     };
     $("fullHouseBtn").onclick = () => {
       socket.emit('callFullHouse', {roomCode: myRoomCode});
