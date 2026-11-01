@@ -17,6 +17,31 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const rooms = {};
 const RECONNECT_GRACE_MS = 5 * 60 * 1000;
+const voiceIceServers = [
+  { urls: 'stun:stun.l.google.com:19302' }
+];
+const turnUrls = (process.env.TURN_SERVER_URL || '')
+  .split(',')
+  .map(url => url.trim())
+  .filter(Boolean);
+
+if (turnUrls.length) {
+  if (!process.env.TURN_USERNAME || !process.env.TURN_CREDENTIAL) {
+    console.error(
+      'TURN_SERVER_URL is set, but TURN_USERNAME or TURN_CREDENTIAL is missing. Voice will use STUN only.'
+    );
+  } else {
+    voiceIceServers.push({
+      urls: turnUrls,
+      username: process.env.TURN_USERNAME,
+      credential: process.env.TURN_CREDENTIAL
+    });
+  }
+} else {
+  console.warn(
+    'TURN is not configured. Voice may fail between players on restrictive or mobile networks.'
+  );
+}
 
 function generateDeck() {
   const deck = [];
@@ -324,6 +349,7 @@ io.on('connection', (socket) => {
     if (!room || !room.players.some(player => player.id === socket.id)) return;
 
     const peers = [...room.voicePlayers].filter(id => id !== socket.id);
+    socket.emit('voice:iceServers', voiceIceServers);
     if (!room.voicePlayers.has(socket.id)) {
       room.voicePlayers.add(socket.id);
       socket.to(roomCode).emit('voice:peerJoined', { id: socket.id });
@@ -626,6 +652,52 @@ io.on('connection', (socket) => {
       startNewHand(room);
       broadcastRoomState(room);
     }
+  });
+
+  socket.on('restartRoom', ({ roomCode }) => {
+    const room = rooms[roomCode];
+    if (
+      !room ||
+      room.gameState !== 'MATCH_OVER' ||
+      room.hostId !== socket.id
+    ) return;
+
+    room.reconnectTimers.forEach(timer => clearTimeout(timer));
+    room.reconnectTimers.clear();
+    room.players = [];
+    room.hostId = null;
+    room.selectedPartnerId = null;
+    room.gameNumber = 1;
+    room.handNumber = 1;
+    room.gameState = 'LOBBY';
+    room.gameScore = 0;
+    room.teamGameWins = [0, 0];
+    room.dealerIndex = 0;
+    room.scoreHistory = [];
+    room.currentTrick = [];
+    room.pendingTricks = [];
+    room.teamTricksWon = [0, 0];
+    room.opposingConsecutiveTricks = 0;
+    room.trickNo = 1;
+    room.pot = 0;
+    room.lastWinner = null;
+    room.leadIndex = 0;
+    room.turnIndex = 0;
+    room.highestBid = 8;
+    room.bidderIndex = -1;
+    room.auctionTurnIndex = 0;
+    room.auctionTurnCount = 0;
+    room.trumpSuit = null;
+    room.fullHouse = null;
+    room.trophyWinner = null;
+    room.deck = [];
+    room.previousGameDeck = [];
+    room.roundMessage = null;
+    room.roomMessage = 'नया गेम शुरू करने के लिए खिलाड़ी फिर से जुड़ें।';
+    room.voicePlayers.clear();
+
+    io.to(roomCode).emit('roomRestarted');
+    broadcastRoomState(room);
   });
 
   socket.on('disconnect', () => {

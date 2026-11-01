@@ -562,6 +562,7 @@ let reconnectToken = "";
 let hasRoomSession = false;
 let voiceStream = null;
 let voiceActive = false;
+let voiceIceServers = [{ urls: "stun:stun.l.google.com:19302" }];
 const voicePeers = new Map();
 
 const $ = id => document.getElementById(id);
@@ -602,9 +603,9 @@ function createVoicePeer(peerId) {
   if (!voiceActive || voicePeers.has(peerId)) return voicePeers.get(peerId);
 
   const pc = new RTCPeerConnection({
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    iceServers: voiceIceServers
   });
-  const peer = { pc, pendingCandidates: [], audio: null };
+  const peer = { pc, pendingCandidates: [], audio: null, offering: false };
   voicePeers.set(peerId, peer);
 
   voiceStream.getTracks().forEach(track => pc.addTrack(track, voiceStream));
@@ -626,12 +627,33 @@ function createVoicePeer(peerId) {
       updateVoiceUi("दूसरों की आवाज़ सुनने के लिए पेज पर टैप करें");
     });
   };
-  pc.onconnectionstatechange = () => updateVoiceUi();
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "failed") {
+      updateVoiceUi("आवाज़ कनेक्ट नहीं हुई। सर्वर पर TURN सेवा की ज़रूरत हो सकती है।");
+    } else {
+      updateVoiceUi();
+    }
+  };
+  pc.oniceconnectionstatechange = () => {
+    if (pc.iceConnectionState === "failed") {
+      pc.restartIce();
+    }
+  };
+  pc.onnegotiationneeded = () => {
+    if (
+      socket.id.localeCompare(peerId) < 0 &&
+      pc.signalingState === "stable"
+    ) {
+      createVoiceOffer(peerId, peer);
+    }
+  };
 
   return peer;
 }
 
 async function createVoiceOffer(peerId, peer) {
+  if (peer.offering || peer.pc.signalingState !== "stable") return;
+  peer.offering = true;
   try {
     const offer = await peer.pc.createOffer();
     await peer.pc.setLocalDescription(offer);
@@ -639,6 +661,8 @@ async function createVoiceOffer(peerId, peer) {
   } catch (error) {
     console.error("Could not start voice connection:", error);
     updateVoiceUi("आवाज़ कनेक्शन शुरू नहीं हो सका");
+  } finally {
+    peer.offering = false;
   }
 }
 
@@ -837,6 +861,17 @@ socket.on("voice:peers", payload => {
     payload.peers.forEach(connectVoicePeer);
   }
 });
+socket.on("voice:iceServers", servers => {
+  if (
+    Array.isArray(servers) &&
+    servers.every(server => server && (
+      typeof server.urls === "string" ||
+      (Array.isArray(server.urls) && server.urls.every(url => typeof url === "string"))
+    ))
+  ) {
+    voiceIceServers = servers;
+  }
+});
 socket.on("voice:peerJoined", payload => {
   if (payload && typeof payload.id === "string") connectVoicePeer(payload.id);
 });
@@ -849,6 +884,24 @@ socket.on("disconnect", () => {
   if (hasRoomSession) {
     $("status").textContent = "कनेक्शन टूट गया है। अपने-आप फिर जुड़ने की कोशिश हो रही है...";
   }
+});
+socket.on("roomRestarted", () => {
+  stopVoice(false);
+  roomData = null;
+  hasRoomSession = false;
+  reconnectToken = "";
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (error) {
+    console.error("Could not clear the saved game session:", error);
+  }
+  $("modalRoot").innerHTML = "";
+  $("playerNameInput").value = myName;
+  $("roomCodeInput").value = myRoomCode;
+  $("roomLabel").textContent = `रूम: ${myRoomCode}`;
+  $("status").textContent = "नया गेम शुरू करने के लिए फिर से जुड़ें।";
+  $("loginModal").classList.remove("hidden");
+  updateVoiceUi();
 });
 
 $("voiceStartBtn").onclick = startVoice;
@@ -1293,6 +1346,7 @@ function handleDialogs(myPlayer) {
       modalRoot.innerHTML = "";
     };
   } else if (roomData.gameState === 'MATCH_OVER') {
+    const isHost = myPlayer && roomData.hostId === myPlayer.id;
     modalRoot.innerHTML = `
       <div class="overlay">
         <div class="dialog" style="text-align:center;">
@@ -1301,12 +1355,19 @@ function handleDialogs(myPlayer) {
             ? `<p style="font-size:13px;font-weight:bold;color:var(--gold);">${roomData.roundMessage}</p>`
             : ""}
           <h2 style="color:var(--gold);margin:10px 0;">टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!</h2>
-          <div class="actions" style="justify-content:center;">
-            <button onclick="location.reload()">नया मैच खेलें</button>
-          </div>
+          ${isHost
+            ? `<div class="actions" style="justify-content:center;">
+                <button id="restartRoomBtn">नए खिलाड़ियों के साथ फिर से खेलें</button>
+              </div>`
+            : '<p style="font-size:12px;">नए खिलाड़ियों के साथ फिर से खेलने के लिए होस्ट का इंतज़ार करें।</p>'}
         </div>
       </div>
     `;
+    if (isHost) {
+      $("restartRoomBtn").onclick = () => {
+        socket.emit('restartRoom', {roomCode: myRoomCode});
+      };
+    }
   } else {
     modalRoot.innerHTML = "";
   }
