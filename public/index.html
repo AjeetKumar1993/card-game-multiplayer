@@ -131,7 +131,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .middle {
   display: grid;
-  grid-template-columns: 75px 1fr 75px;
+  grid-template-columns: 58px minmax(0, 1fr) 58px;
   align-items: center;
   gap: 4px;
   margin: 6px 0;
@@ -151,7 +151,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 150px;
+  min-height: 180px;
   height: 100%;
   padding: 6px;
   position: relative;
@@ -231,7 +231,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   align-items: center;
   gap: 2px;
   min-width: 0;
-  font-size: 8px;
+  font-size: 7px;
   color: #d8f2df;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -245,8 +245,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 110px;
-  padding: 4px 6px;
+  max-width: 72px;
+  padding: 4px 3px;
   border-radius: 8px;
   background: rgba(163, 35, 35, 0.85);
   border: 1.5px solid transparent;
@@ -257,13 +257,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .badge.dealer { outline: 2px solid var(--gold); }
 .badge .name {
   font-weight: 800;
-  font-size: 11px;
+  font-size: 9px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 90px;
+  max-width: 64px;
 }
-.badge .sub { font-size: 9px; opacity: 0.9; }
+.badge .sub { font-size: 8px; opacity: 0.9; }
 
 /* CARD & HAND DISPLAY */
 .hand-container {
@@ -284,9 +284,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .card {
   position: relative;
   flex: 0 0 auto;
-  width: clamp(42px, 12vw, 56px);
-  height: clamp(60px, 17vw, 80px);
-  margin-left: clamp(-18px, -4vw, -12px);
+  width: clamp(46px, 13vw, 60px);
+  height: clamp(65px, 18.5vw, 84px);
+  margin-left: clamp(-20px, -4.5vw, -14px);
   border-radius: 5px;
   background: #fff;
   box-shadow: 0 2px 6px rgba(0,0,0,0.4);
@@ -314,8 +314,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   filter: grayscale(40%);
 }
 .card.small {
-  width: clamp(26px, 8vw, 34px);
-  height: clamp(37px, 11vw, 48px);
+  width: clamp(34px, 10vw, 44px);
+  height: auto;
+  aspect-ratio: 5 / 7;
   margin: 0;
 }
 .reveal-hand .card.small {
@@ -396,6 +397,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (max-width: 360px) {
   .bid-dialog { padding: 10px; }
   .bid-hand { gap: 3px; }
+  .middle { grid-template-columns: 48px minmax(0, 1fr) 48px; }
+  .arena { min-height: 165px; }
+  .card.small { width: clamp(30px, 9.5vw, 36px); }
+  .badge .name { max-width: 52px; font-size: 8px; }
 }
 .dialog h2 {
   margin: 0 0 10px;
@@ -450,29 +455,55 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: var(--bg-dark);
   color: var(--gold);
 }
-.voice-controls {
+.chat-panel {
+  width: min(100% - 16px, 600px);
+  margin: 8px auto;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+}
+.chat-title {
+  margin: 0 0 6px;
+  color: var(--gold);
+  font-size: 12px;
+}
+.chat-messages {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.25);
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 2px 4px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
-.voice-controls button {
-  padding: 6px 10px;
-  font-size: 11px;
+.chat-message-name {
+  color: #8ed0ff;
+  font-weight: 700;
 }
-.voice-status {
-  color: #dbe8df;
-  font-size: 11px;
+.chat-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
 }
-.remote-audio {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+.chat-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  background: var(--bg-dark);
+  color: #fff;
+  border: 1px solid #527461;
+  border-radius: 6px;
+}
+.chat-form button {
+  padding: 7px 12px;
+}
+.chat-feedback {
+  min-height: 14px;
+  margin: 3px 0 0;
+  color: #ffd166;
+  font-size: 10px;
 }
 .hidden { display: none !important; }
 </style>
@@ -483,7 +514,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   <div class="dialog">
     <h2>गेम में शामिल हों</h2>
     <label style="font-size:12px;">आपका नाम:</label>
-    <input type="text" id="playerNameInput" placeholder="खिलाड़ी" value="खिलाड़ी">
+    <input type="text" id="playerNameInput" placeholder="अपना नाम दर्ज करें" required>
     <label style="font-size:12px;">रूम कोड:</label>
     <input type="text" id="roomCodeInput" placeholder="ROOM1" value="ROOM1">
     <div class="actions">
@@ -497,13 +528,16 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   <span id="roomLabel" style="font-weight:bold;color:var(--gold);font-size:12px;">रूम: —</span>
 </header>
 
-<div id="voiceControls" class="voice-controls hidden">
-  <button id="voiceStartBtn" type="button">🎙️ आवाज़ चालू करें</button>
-  <button id="voiceMuteBtn" type="button" class="secondary hidden">म्यूट करें</button>
-  <button id="voiceLeaveBtn" type="button" class="secondary hidden">आवाज़ बंद करें</button>
-  <span id="voiceStatus" class="voice-status" aria-live="polite">माइक बंद है</span>
-</div>
-<div id="remoteAudio" class="remote-audio" aria-hidden="true"></div>
+<section id="chatPanel" class="chat-panel hidden" aria-label="Room chat">
+  <h2 class="chat-title">💬 रूम चैट · संदेश सेव नहीं होंगे</h2>
+  <div id="chatMessages" class="chat-messages" role="log" aria-live="polite"></div>
+  <form id="chatForm" class="chat-form">
+    <input id="chatInput" type="text" maxlength="500" autocomplete="off"
+      placeholder="संदेश लिखें..." aria-label="संदेश लिखें">
+    <button id="chatSendBtn" type="submit">भेजें</button>
+  </form>
+  <p id="chatFeedback" class="chat-feedback" role="status"></p>
+</section>
 
 <div class="scorebar">
   <span class="team1">टीम 1 (जीत: <b id="teamGameWins1">0</b>/3)</span>
@@ -521,6 +555,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 </div>
 
 <div id="status" class="status">खिलाड़ियों का इंतज़ार है...</div>
+<div id="restartRoomControl" class="actions hidden" style="justify-content:center;"></div>
 <div id="lobbyControls" class="dialog hidden" style="margin:0 auto 8px;max-width:400px;"></div>
 <div id="fullHouseAction" class="actions" style="justify-content:center;"></div>
 <div id="fullHouseReveal" class="full-house-reveal hidden"></div>
@@ -560,200 +595,58 @@ let myName = "";
 let roomData = null;
 let reconnectToken = "";
 let hasRoomSession = false;
-let voiceStream = null;
-let voiceActive = false;
-let voiceIceServers = [{ urls: "stun:stun.l.google.com:19302" }];
-const voicePeers = new Map();
 
 const $ = id => document.getElementById(id);
 
-function updateVoiceUi(message) {
+function updateChatUi() {
   const joined = Boolean(getMyPlayer());
-  $("voiceControls").classList.toggle("hidden", !joined);
-  $("voiceStartBtn").classList.toggle("hidden", voiceActive);
-  $("voiceMuteBtn").classList.toggle("hidden", !voiceActive);
-  $("voiceLeaveBtn").classList.toggle("hidden", !voiceActive);
+  $("chatPanel").classList.toggle("hidden", !joined);
+  $("chatInput").disabled = !joined || !socket.connected;
+  $("chatSendBtn").disabled = !joined || !socket.connected;
+}
 
-  if (message) {
-    $("voiceStatus").textContent = message;
-  } else if (!voiceActive) {
-    $("voiceStatus").textContent = "माइक बंद है";
-  } else {
-    const audioTrack = voiceStream && voiceStream.getAudioTracks()[0];
-    const connectedPeers = [...voicePeers.values()].filter(
-      peer => peer.pc.connectionState === "connected"
-    ).length;
-    $("voiceMuteBtn").textContent =
-      audioTrack && !audioTrack.enabled ? "अनम्यूट करें" : "म्यूट करें";
-    $("voiceStatus").textContent = audioTrack && !audioTrack.enabled
-      ? `माइक म्यूट है · ${connectedPeers} खिलाड़ी जुड़े`
-      : `आवाज़ चालू · ${connectedPeers} खिलाड़ी जुड़े`;
+function appendChatMessage(message) {
+  const row = document.createElement("div");
+  row.className = "chat-message";
+  const name = document.createElement("span");
+  name.className = "chat-message-name";
+  name.textContent = `${message.playerName}: `;
+  const text = document.createElement("span");
+  text.textContent = message.text;
+  row.append(name, text);
+  $("chatMessages").appendChild(row);
+
+  while ($("chatMessages").children.length > 100) {
+    $("chatMessages").firstElementChild.remove();
   }
+  $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
 }
 
-function sendVoiceSignal(peerId, signal) {
-  socket.emit("voice:signal", {
-    roomCode: myRoomCode,
-    to: peerId,
-    ...signal
-  });
-}
+function sendChatMessage(event) {
+  event.preventDefault();
+  const text = $("chatInput").value.trim();
+  if (!text || !roomData || !getMyPlayer() || !socket.connected) return;
 
-function createVoicePeer(peerId) {
-  if (!voiceActive || voicePeers.has(peerId)) return voicePeers.get(peerId);
-
-  const pc = new RTCPeerConnection({
-    iceServers: voiceIceServers
-  });
-  const peer = { pc, pendingCandidates: [], audio: null, offering: false };
-  voicePeers.set(peerId, peer);
-
-  voiceStream.getTracks().forEach(track => pc.addTrack(track, voiceStream));
-  pc.onicecandidate = event => {
-    if (event.candidate && voiceActive) {
-      sendVoiceSignal(peerId, { candidate: event.candidate });
-    }
-  };
-  pc.ontrack = event => {
-    if (!voiceActive || !event.streams[0]) return;
-    if (!peer.audio) {
-      peer.audio = document.createElement("audio");
-      peer.audio.autoplay = true;
-      peer.audio.playsInline = true;
-      $("remoteAudio").appendChild(peer.audio);
-    }
-    peer.audio.srcObject = event.streams[0];
-    peer.audio.play().catch(() => {
-      updateVoiceUi("दूसरों की आवाज़ सुनने के लिए पेज पर टैप करें");
-    });
-  };
-  pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed") {
-      updateVoiceUi("आवाज़ कनेक्ट नहीं हुई। सर्वर पर TURN सेवा की ज़रूरत हो सकती है।");
-    } else {
-      updateVoiceUi();
-    }
-  };
-  pc.oniceconnectionstatechange = () => {
-    if (pc.iceConnectionState === "failed") {
-      pc.restartIce();
-    }
-  };
-  pc.onnegotiationneeded = () => {
-    if (
-      socket.id.localeCompare(peerId) < 0 &&
-      pc.signalingState === "stable"
-    ) {
-      createVoiceOffer(peerId, peer);
-    }
-  };
-
-  return peer;
-}
-
-async function createVoiceOffer(peerId, peer) {
-  if (peer.offering || peer.pc.signalingState !== "stable") return;
-  peer.offering = true;
-  try {
-    const offer = await peer.pc.createOffer();
-    await peer.pc.setLocalDescription(offer);
-    sendVoiceSignal(peerId, { description: peer.pc.localDescription });
-  } catch (error) {
-    console.error("Could not start voice connection:", error);
-    updateVoiceUi("आवाज़ कनेक्शन शुरू नहीं हो सका");
-  } finally {
-    peer.offering = false;
-  }
-}
-
-function connectVoicePeer(peerId) {
-  if (!voiceActive || peerId === socket.id) return;
-  const peer = createVoicePeer(peerId);
-  if (peer && socket.id.localeCompare(peerId) < 0 && !peer.pc.localDescription) {
-    createVoiceOffer(peerId, peer);
-  }
-}
-
-async function applyVoiceSignal(payload) {
-  if (!payload || typeof payload !== "object") return;
-  const { from, description, candidate } = payload;
-  if (!voiceActive || typeof from !== "string") return;
-  const peer = createVoicePeer(from);
-  if (!peer) return;
-
-  try {
-    if (description) {
-      await peer.pc.setRemoteDescription(description);
-      while (peer.pendingCandidates.length) {
-        await peer.pc.addIceCandidate(peer.pendingCandidates.shift());
-      }
-
-      if (description.type === "offer") {
-        const answer = await peer.pc.createAnswer();
-        await peer.pc.setLocalDescription(answer);
-        sendVoiceSignal(from, { description: peer.pc.localDescription });
-      }
-    } else if (candidate) {
-      if (peer.pc.remoteDescription) {
-        await peer.pc.addIceCandidate(candidate);
+  $("chatSendBtn").disabled = true;
+  $("chatFeedback").textContent = "";
+  socket.timeout(7000).emit(
+    "chat:send",
+    { roomCode: myRoomCode, text },
+    (error, result) => {
+      $("chatSendBtn").disabled = false;
+      if (error) {
+        $("chatFeedback").textContent =
+          "संदेश नहीं भेजा जा सका। कनेक्शन जाँचकर फिर कोशिश करें।";
+      } else if (!result || !result.ok) {
+        $("chatFeedback").textContent =
+          result && result.message ? result.message : "संदेश भेजा नहीं जा सका।";
       } else {
-        peer.pendingCandidates.push(candidate);
+        $("chatInput").value = "";
+        $("chatFeedback").textContent = "";
+        $("chatInput").focus();
       }
     }
-  } catch (error) {
-    console.error("Could not establish voice connection:", error);
-    updateVoiceUi("आवाज़ कनेक्शन में समस्या हुई");
-  }
-}
-
-function closeVoicePeer(peerId) {
-  const peer = voicePeers.get(peerId);
-  if (!peer) return;
-  peer.pc.close();
-  if (peer.audio) {
-    peer.audio.srcObject = null;
-    peer.audio.remove();
-  }
-  voicePeers.delete(peerId);
-}
-
-function stopVoice(notifyServer = true) {
-  if (notifyServer && voiceActive) {
-    socket.emit("voice:leave", { roomCode: myRoomCode });
-  }
-  voiceActive = false;
-  if (voiceStream) {
-    voiceStream.getTracks().forEach(track => track.stop());
-    voiceStream = null;
-  }
-  [...voicePeers.keys()].forEach(closeVoicePeer);
-  updateVoiceUi();
-}
-
-async function startVoice() {
-  if (!roomData || !getMyPlayer()) return;
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    updateVoiceUi("माइक के लिए सुरक्षित HTTPS कनेक्शन ज़रूरी है");
-    return;
-  }
-
-  $("voiceStartBtn").disabled = true;
-  try {
-    voiceStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: false
-    });
-    voiceActive = true;
-    socket.emit("voice:join", { roomCode: myRoomCode });
-    updateVoiceUi("माइक चालू · खिलाड़ियों से जुड़ रहे हैं");
-  } catch (error) {
-    console.error("Could not access microphone:", error);
-    updateVoiceUi(error.name === "NotAllowedError"
-      ? "माइक की अनुमति दें और फिर कोशिश करें"
-      : "माइक चालू नहीं हो सका");
-  } finally {
-    $("voiceStartBtn").disabled = false;
-  }
+  );
 }
 
 function getRankCode(v) {
@@ -777,7 +670,14 @@ function cardHtml(c, small=false, playable=false, disabled=false) {
 }
 
 $("joinGameBtn").onclick = () => {
-  myName = $("playerNameInput").value.trim() || "खिलाड़ी";
+  const playerNameInput = $("playerNameInput");
+  myName = playerNameInput.value.trim();
+  if (!myName) {
+    playerNameInput.setCustomValidity("कृपया अपना नाम दर्ज करें।");
+    playerNameInput.reportValidity();
+    return;
+  }
+  playerNameInput.setCustomValidity("");
   myRoomCode = $("roomCodeInput").value.trim().toUpperCase() || "ROOM1";
   const savedSession = loadSavedSession();
   reconnectToken = savedSession && savedSession.roomCode === myRoomCode
@@ -789,6 +689,9 @@ $("joinGameBtn").onclick = () => {
   $("roomLabel").textContent = `रूम: ${myRoomCode}`;
   if (socket.connected) joinRoom();
 };
+$("playerNameInput").addEventListener("input", event => {
+  event.currentTarget.setCustomValidity("");
+});
 
 function loadSavedSession() {
   try {
@@ -828,6 +731,7 @@ function joinRoom() {
 $("checkScoreBtn").onclick = () => showScoreboardModal();
 
 socket.on("connect", () => {
+  updateChatUi();
   if (hasRoomSession) joinRoom();
 });
 socket.on("joinResult", result => {
@@ -853,40 +757,25 @@ socket.on("joinResult", result => {
 socket.on('roomStateUpdate', (data) => {
   roomData = data;
   render();
-  updateVoiceUi();
+  updateChatUi();
 });
 
-socket.on("voice:peers", payload => {
-  if (payload && Array.isArray(payload.peers)) {
-    payload.peers.forEach(connectVoicePeer);
-  }
-});
-socket.on("voice:iceServers", servers => {
+socket.on("chat:message", message => {
   if (
-    Array.isArray(servers) &&
-    servers.every(server => server && (
-      typeof server.urls === "string" ||
-      (Array.isArray(server.urls) && server.urls.every(url => typeof url === "string"))
-    ))
+    message &&
+    typeof message.playerName === "string" &&
+    typeof message.text === "string"
   ) {
-    voiceIceServers = servers;
+    appendChatMessage(message);
   }
 });
-socket.on("voice:peerJoined", payload => {
-  if (payload && typeof payload.id === "string") connectVoicePeer(payload.id);
-});
-socket.on("voice:peerLeft", payload => {
-  if (payload && typeof payload.id === "string") closeVoicePeer(payload.id);
-});
-socket.on("voice:signal", applyVoiceSignal);
 socket.on("disconnect", () => {
-  stopVoice(false);
+  updateChatUi();
   if (hasRoomSession) {
     $("status").textContent = "कनेक्शन टूट गया है। अपने-आप फिर जुड़ने की कोशिश हो रही है...";
   }
 });
 socket.on("roomRestarted", () => {
-  stopVoice(false);
   roomData = null;
   hasRoomSession = false;
   reconnectToken = "";
@@ -896,23 +785,21 @@ socket.on("roomRestarted", () => {
     console.error("Could not clear the saved game session:", error);
   }
   $("modalRoot").innerHTML = "";
-  $("playerNameInput").value = myName;
+  myName = "";
+  $("playerNameInput").value = "";
   $("roomCodeInput").value = myRoomCode;
+  $("chatMessages").innerHTML = "";
+  $("chatInput").value = "";
   $("roomLabel").textContent = `रूम: ${myRoomCode}`;
   $("status").textContent = "नया गेम शुरू करने के लिए फिर से जुड़ें।";
   $("loginModal").classList.remove("hidden");
-  updateVoiceUi();
+  updateChatUi();
 });
 
-$("voiceStartBtn").onclick = startVoice;
-$("voiceMuteBtn").onclick = () => {
-  const audioTrack = voiceStream && voiceStream.getAudioTracks()[0];
-  if (audioTrack) {
-    audioTrack.enabled = !audioTrack.enabled;
-    updateVoiceUi();
-  }
-};
-$("voiceLeaveBtn").onclick = () => stopVoice();
+$("chatForm").onsubmit = sendChatMessage;
+$("chatInput").addEventListener("input", () => {
+  $("chatFeedback").textContent = "";
+});
 
 function getMyPlayer() {
   return roomData ? roomData.players.find(p => p.id === socket.id) : null;
@@ -940,6 +827,21 @@ function render() {
       `खिलाड़ियों का इंतज़ार जारी है (${roomData.players.length}/4)...`;
   }
   const lobbyControls = $("lobbyControls");
+  const restartRoomControl = $("restartRoomControl");
+  if (myPlayer) {
+    restartRoomControl.classList.remove("hidden");
+    restartRoomControl.innerHTML =
+      '<button id="restartRoomDashboardBtn">रूम रीस्टार्ट करें</button>';
+    $("restartRoomDashboardBtn").onclick = () => {
+      if (window.confirm("रूम रीस्टार्ट करने पर मौजूदा गेम और खिलाड़ी हट जाएँगे। क्या जारी रखें?")) {
+        socket.emit('restartRoom', {roomCode: myRoomCode});
+      }
+    };
+  } else {
+    restartRoomControl.classList.add("hidden");
+    restartRoomControl.innerHTML = "";
+  }
+
   if (roomData.gameState === 'LOBBY') {
     const isHost = myPlayer && roomData.hostId === myPlayer.id;
     const teammates = myPlayer
@@ -1346,28 +1248,7 @@ function handleDialogs(myPlayer) {
       modalRoot.innerHTML = "";
     };
   } else if (roomData.gameState === 'MATCH_OVER') {
-    const isHost = myPlayer && roomData.hostId === myPlayer.id;
-    modalRoot.innerHTML = `
-      <div class="overlay">
-        <div class="dialog" style="text-align:center;">
-          <h2>🏆 मैच समाप्त</h2>
-          ${roomData.roundMessage
-            ? `<p style="font-size:13px;font-weight:bold;color:var(--gold);">${roomData.roundMessage}</p>`
-            : ""}
-          <h2 style="color:var(--gold);margin:10px 0;">टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!</h2>
-          ${isHost
-            ? `<div class="actions" style="justify-content:center;">
-                <button id="restartRoomBtn">नए खिलाड़ियों के साथ फिर से खेलें</button>
-              </div>`
-            : '<p style="font-size:12px;">नए खिलाड़ियों के साथ फिर से खेलने के लिए होस्ट का इंतज़ार करें।</p>'}
-        </div>
-      </div>
-    `;
-    if (isHost) {
-      $("restartRoomBtn").onclick = () => {
-        socket.emit('restartRoom', {roomCode: myRoomCode});
-      };
-    }
+    modalRoot.innerHTML = "";
   } else {
     modalRoot.innerHTML = "";
   }

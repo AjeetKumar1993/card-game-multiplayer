@@ -17,31 +17,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const rooms = {};
 const RECONNECT_GRACE_MS = 5 * 60 * 1000;
-const voiceIceServers = [
-  { urls: 'stun:stun.l.google.com:19302' }
-];
-const turnUrls = (process.env.TURN_SERVER_URL || '')
-  .split(',')
-  .map(url => url.trim())
-  .filter(Boolean);
-
-if (turnUrls.length) {
-  if (!process.env.TURN_USERNAME || !process.env.TURN_CREDENTIAL) {
-    console.error(
-      'TURN_SERVER_URL is set, but TURN_USERNAME or TURN_CREDENTIAL is missing. Voice will use STUN only.'
-    );
-  } else {
-    voiceIceServers.push({
-      urls: turnUrls,
-      username: process.env.TURN_USERNAME,
-      credential: process.env.TURN_CREDENTIAL
-    });
-  }
-} else {
-  console.warn(
-    'TURN is not configured. Voice may fail between players on restrictive or mobile networks.'
-  );
-}
 
 function generateDeck() {
   const deck = [];
@@ -274,7 +249,6 @@ io.on('connection', (socket) => {
         deck: [],
         roomMessage: null,
         roundMessage: null,
-        voicePlayers: new Set(),
         reconnectTimers: new Map()
       };
     }
@@ -292,7 +266,6 @@ io.on('connection', (socket) => {
       const reconnectTimer = room.reconnectTimers.get(reconnectToken);
       if (reconnectTimer) clearTimeout(reconnectTimer);
       room.reconnectTimers.delete(reconnectToken);
-      room.voicePlayers.delete(oldId);
       if (room.hostId === oldId) room.hostId = socket.id;
       if (room.selectedPartnerId === oldId) {
         room.selectedPartnerId = socket.id;
@@ -300,7 +273,6 @@ io.on('connection', (socket) => {
       returningPlayer.id = socket.id;
       returningPlayer.connected = true;
       if (oldId !== socket.id) {
-        io.to(code).emit('voice:peerLeft', { id: oldId });
         io.sockets.sockets.get(oldId)?.disconnect(true);
       }
       socket.join(code);
@@ -342,63 +314,37 @@ io.on('connection', (socket) => {
     broadcastRoomState(room);
   });
 
-  socket.on('voice:join', payload => {
-    if (!payload || typeof payload.roomCode !== 'string') return;
-    const { roomCode } = payload;
-    const room = rooms[roomCode];
-    if (!room || !room.players.some(player => player.id === socket.id)) return;
-
-    const peers = [...room.voicePlayers].filter(id => id !== socket.id);
-    socket.emit('voice:iceServers', voiceIceServers);
-    if (!room.voicePlayers.has(socket.id)) {
-      room.voicePlayers.add(socket.id);
-      socket.to(roomCode).emit('voice:peerJoined', { id: socket.id });
-    }
-    socket.emit('voice:peers', { peers });
-  });
-
-  socket.on('voice:leave', payload => {
-    if (!payload || typeof payload.roomCode !== 'string') return;
-    const { roomCode } = payload;
-    const room = rooms[roomCode];
-    if (!room || !room.voicePlayers.delete(socket.id)) return;
-    socket.to(roomCode).emit('voice:peerLeft', { id: socket.id });
-  });
-
-  socket.on('voice:signal', payload => {
-    if (!payload || typeof payload.roomCode !== 'string') return;
-    const { roomCode, to, description, candidate } = payload;
-    const room = rooms[roomCode];
+  socket.on('chat:send', (payload, acknowledge) => {
+    const reply = typeof acknowledge === 'function' ? acknowledge : () => {};
     if (
-      !room ||
-      typeof to !== 'string' ||
-      !room.voicePlayers.has(socket.id) ||
-      !room.voicePlayers.has(to) ||
-      !room.players.some(player => player.id === to)
-    ) return;
-
-    const signal = { from: socket.id };
-    if (
-      description &&
-      (description.type === 'offer' || description.type === 'answer') &&
-      typeof description.sdp === 'string'
+      !payload ||
+      typeof payload.roomCode !== 'string' ||
+      typeof payload.text !== 'string'
     ) {
-      signal.description = {
-        type: description.type,
-        sdp: description.sdp
-      };
-    } else if (candidate && typeof candidate.candidate === 'string') {
-      signal.candidate = {
-        candidate: candidate.candidate,
-        sdpMid: candidate.sdpMid,
-        sdpMLineIndex: candidate.sdpMLineIndex,
-        usernameFragment: candidate.usernameFragment
-      };
-    } else {
+      reply({ ok: false, message: 'संदेश भेजा नहीं जा सका।' });
       return;
     }
 
-    io.to(to).emit('voice:signal', signal);
+    const room = rooms[payload.roomCode];
+    const player = room &&
+      room.players.find(candidate => candidate.id === socket.id);
+    const text = payload.text.trim();
+    if (!player || !text || text.length > 500) {
+      reply({
+        ok: false,
+        message: !player
+          ? 'पहले इस रूम में शामिल हों।'
+          : 'संदेश खाली है या 500 अक्षरों से बड़ा है।'
+      });
+      return;
+    }
+
+    io.to(payload.roomCode).emit('chat:message', {
+      playerName: player.name,
+      text,
+      sentAt: Date.now()
+    });
+    reply({ ok: true });
   });
 
   socket.on('selectTeammate', ({ roomCode, teammateId }) => {
@@ -658,8 +604,7 @@ io.on('connection', (socket) => {
     const room = rooms[roomCode];
     if (
       !room ||
-      room.gameState !== 'MATCH_OVER' ||
-      room.hostId !== socket.id
+      !room.players.some(player => player.id === socket.id)
     ) return;
 
     room.reconnectTimers.forEach(timer => clearTimeout(timer));
@@ -694,8 +639,6 @@ io.on('connection', (socket) => {
     room.previousGameDeck = [];
     room.roundMessage = null;
     room.roomMessage = 'नया गेम शुरू करने के लिए खिलाड़ी फिर से जुड़ें।';
-    room.voicePlayers.clear();
-
     io.to(roomCode).emit('roomRestarted');
     broadcastRoomState(room);
   });
@@ -703,9 +646,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     for (const code in rooms) {
       const room = rooms[code];
-      if (room.voicePlayers.delete(socket.id)) {
-        socket.to(code).emit('voice:peerLeft', { id: socket.id });
-      }
       const pIdx = room.players.findIndex(p => p.id === socket.id);
 
       if (pIdx !== -1) {
@@ -879,13 +819,25 @@ function resolveTrick(room) {
   room.turnIndex = winnerSeat;
   room.leadIndex = winnerSeat;
 
+  if (room.fullHouse && room.opposingConsecutiveTricks >= 2) {
+    resolveFullHouse(room);
+    if (room.fullHouse.phase === 'INITIAL') {
+      finishInitialFullHouse(room);
+    } else {
+      evaluateSharedScoreRules(room);
+    }
+    broadcastRoomState(room);
+    return;
+  }
+
   if (!room.fullHouse) {
     const bidder = room.players[room.bidderIndex];
     if (bidder && Number.isInteger(room.highestBid)) {
       const defeatThreshold = 14 - room.highestBid;
-      if (room.opposingConsecutiveTricks >= defeatThreshold) {
+      const opposingTeamTricks = room.teamTricksWon[2 - bidder.teamId];
+      if (opposingTeamTricks >= defeatThreshold) {
         room.roundMessage =
-          `The bidding team is defeated! The opposing team won ${defeatThreshold} consecutive tricks.`;
+          `The bidding team is defeated! The opposing team won ${defeatThreshold} tricks.`;
         evaluateSharedScoreRules(room);
         broadcastRoomState(room);
         return;
@@ -1122,7 +1074,6 @@ function sanitizeRoomState(room, viewerId) {
         ]
       : [],
     deck: undefined,
-    voicePlayers: undefined,
     reconnectTimers: undefined
   };
 }
