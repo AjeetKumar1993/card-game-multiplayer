@@ -455,18 +455,58 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: var(--bg-dark);
   color: var(--gold);
 }
+.room-tools {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: min(100% - 16px, 640px);
+  margin: 8px 8px 0 auto;
+}
+.restart-room-button {
+  display: flex;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+}
+.restart-room-button svg {
+  width: 17px;
+  height: 17px;
+}
 .chat-panel {
-  width: min(100% - 16px, 600px);
-  margin: 8px auto;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  margin: 0;
   padding: 8px;
   border: 1px solid rgba(255,255,255,0.16);
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.3);
 }
 .chat-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin: 0 0 6px;
   color: var(--gold);
   font-size: 12px;
+}
+.chat-hide-button {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+.chat-start-button {
+  margin-left: auto;
+  padding: 5px 8px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.late-full-house-button {
+  margin-right: 8px;
+  padding: 5px 8px;
+  font-size: 10px;
 }
 .chat-messages {
   display: flex;
@@ -515,8 +555,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     <h2>गेम में शामिल हों</h2>
     <label style="font-size:12px;">आपका नाम:</label>
     <input type="text" id="playerNameInput" placeholder="अपना नाम दर्ज करें" required>
-    <label style="font-size:12px;">रूम कोड:</label>
-    <input type="text" id="roomCodeInput" placeholder="ROOM1" value="ROOM1">
+    <input type="hidden" id="roomCodeInput" value="CHHAPUR">
     <div class="actions">
       <button id="joinGameBtn" style="width:100%;">खेल शुरू करें</button>
     </div>
@@ -525,39 +564,46 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 <header class="top">
   <div class="brand">♠ साझा स्कोर गेम</div>
-  <span id="roomLabel" style="font-weight:bold;color:var(--gold);font-size:12px;">रूम: —</span>
+  <span id="roomLabel" style="font-weight:bold;color:var(--gold);font-size:12px;">रूम: Chhapur</span>
 </header>
 
-<section id="chatPanel" class="chat-panel hidden" aria-label="Room chat">
-  <h2 class="chat-title">💬 रूम चैट · संदेश सेव नहीं होंगे</h2>
-  <div id="chatMessages" class="chat-messages" role="log" aria-live="polite"></div>
-  <form id="chatForm" class="chat-form">
-    <input id="chatInput" type="text" maxlength="500" autocomplete="off"
-      placeholder="संदेश लिखें..." aria-label="संदेश लिखें">
-    <button id="chatSendBtn" type="submit">भेजें</button>
-  </form>
-  <p id="chatFeedback" class="chat-feedback" role="status"></p>
-</section>
+<div id="roomTools" class="room-tools hidden">
+  <div id="restartRoomControl" class="actions hidden"></div>
+  <button id="chatStartBtn" class="chat-start-button hidden" type="button">चैट शुरू करें</button>
+  <section id="chatPanel" class="chat-panel hidden" aria-label="Room chat">
+    <h2 class="chat-title">
+      <span>💬 रूम चैट · संदेश सेव नहीं होंगे</span>
+      <button id="chatHideBtn" class="chat-hide-button secondary" type="button">छिपाएँ</button>
+    </h2>
+    <div id="chatMessages" class="chat-messages" role="log" aria-live="polite"></div>
+    <form id="chatForm" class="chat-form">
+      <input id="chatInput" type="text" maxlength="500" autocomplete="off"
+        placeholder="संदेश लिखें..." aria-label="संदेश लिखें">
+      <button id="chatSendBtn" type="submit">भेजें</button>
+    </form>
+    <p id="chatFeedback" class="chat-feedback" role="status"></p>
+  </section>
+</div>
 
 <div class="scorebar">
   <span class="team1">टीम 1 (जीत: <b id="teamGameWins1">0</b>/3)</span>
   <span class="main-score">स्कोर: <b id="sharedScore">0</b> / 52</span>
   <button id="checkScoreBtn" class="btn-score">📊 स्कोर</button>
+  <button id="scoreRulesBtn" class="btn-score">नियम</button>
   <span class="team2">टीम 2 (जीत: <b id="teamGameWins2">0</b>/3)</span>
 </div>
 
 <div class="track">
   <span id="gamePill" class="pill">गेम: 1</span>
   <span id="dealerPill" class="pill">डीलर: —</span>
-  <span id="trumpPill" class="pill">ट्रंप: —</span>
+  <span id="trumpPill" class="pill">तुरुप: —</span>
   <span id="bidPill" class="pill">बोली: —</span>
   <span id="trickLabel" class="pill">1/13</span>
 </div>
 
 <div id="status" class="status">खिलाड़ियों का इंतज़ार है...</div>
-<div id="restartRoomControl" class="actions hidden" style="justify-content:center;"></div>
 <div id="lobbyControls" class="dialog hidden" style="margin:0 auto 8px;max-width:400px;"></div>
-<div id="fullHouseAction" class="actions" style="justify-content:center;"></div>
+<div id="fullHouseAction" class="actions" style="justify-content:flex-end;"></div>
 <div id="fullHouseReveal" class="full-house-reveal hidden"></div>
 
 <main class="table">
@@ -583,26 +629,63 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 const socket = io();
 const SESSION_STORAGE_KEY = "callBreakRoomSession";
+const DEFAULT_ROOM_CODE = "CHHAPUR";
+const DEFAULT_ROOM_NAME = "Chhapur";
 const SUITS = [
-  {name:"हुकुम (Spades)",symbol:"♠",code:"S",red:false},
-  {name:"पान (Hearts)",symbol:"♥",code:"H",red:true},
-  {name:"ईंट (Diamonds)",symbol:"♦",code:"D",red:true},
-  {name:"चिड़ी (Clubs)",symbol:"♣",code:"C",red:false}
+  {name:"हुकुम (Spades)",hindiName:"हुकुम",symbol:"♠",code:"S",red:false},
+  {name:"पान (Hearts)",hindiName:"पान",symbol:"♥",code:"H",red:true},
+  {name:"ईंट (Diamonds)",hindiName:"ईंट",symbol:"♦",code:"D",red:true},
+  {name:"चिड़ी (Clubs)",hindiName:"चिड़ी",symbol:"♣",code:"C",red:false}
 ];
 
-let myRoomCode = "";
+let myRoomCode = DEFAULT_ROOM_CODE;
 let myName = "";
 let roomData = null;
 let reconnectToken = "";
 let hasRoomSession = false;
+let chatVisible = true;
+let chatIdleTimer = null;
 
 const $ = id => document.getElementById(id);
 
 function updateChatUi() {
   const joined = Boolean(getMyPlayer());
-  $("chatPanel").classList.toggle("hidden", !joined);
+  $("roomTools").classList.toggle("hidden", !joined);
+  $("chatPanel").classList.toggle("hidden", !joined || !chatVisible);
+  $("chatStartBtn").classList.toggle("hidden", !joined || chatVisible);
   $("chatInput").disabled = !joined || !socket.connected;
   $("chatSendBtn").disabled = !joined || !socket.connected;
+
+  if (!joined) {
+    clearTimeout(chatIdleTimer);
+    chatIdleTimer = null;
+  } else if (chatVisible && chatIdleTimer === null) {
+    resetChatIdleTimer();
+  }
+}
+
+function resetChatIdleTimer() {
+  clearTimeout(chatIdleTimer);
+  if (!chatVisible || !getMyPlayer()) {
+    chatIdleTimer = null;
+    return;
+  }
+  chatIdleTimer = setTimeout(() => {
+    chatIdleTimer = null;
+    chatVisible = false;
+    updateChatUi();
+  }, 2 * 60 * 1000);
+}
+
+function setChatVisible(visible) {
+  chatVisible = visible;
+  if (visible) {
+    resetChatIdleTimer();
+  } else {
+    clearTimeout(chatIdleTimer);
+    chatIdleTimer = null;
+  }
+  updateChatUi();
 }
 
 function appendChatMessage(message) {
@@ -678,7 +761,7 @@ $("joinGameBtn").onclick = () => {
     return;
   }
   playerNameInput.setCustomValidity("");
-  myRoomCode = $("roomCodeInput").value.trim().toUpperCase() || "ROOM1";
+  myRoomCode = DEFAULT_ROOM_CODE;
   const savedSession = loadSavedSession();
   reconnectToken = savedSession && savedSession.roomCode === myRoomCode
     ? savedSession.reconnectToken
@@ -686,7 +769,7 @@ $("joinGameBtn").onclick = () => {
   hasRoomSession = true;
   saveRoomSession();
   $("loginModal").classList.add("hidden");
-  $("roomLabel").textContent = `रूम: ${myRoomCode}`;
+  $("roomLabel").textContent = `रूम: ${DEFAULT_ROOM_NAME}`;
   if (socket.connected) joinRoom();
 };
 $("playerNameInput").addEventListener("input", event => {
@@ -729,6 +812,7 @@ function joinRoom() {
 }
 
 $("checkScoreBtn").onclick = () => showScoreboardModal();
+$("scoreRulesBtn").onclick = () => showScoreRulesModal();
 
 socket.on("connect", () => {
   updateChatUi();
@@ -787,18 +871,24 @@ socket.on("roomRestarted", () => {
   $("modalRoot").innerHTML = "";
   myName = "";
   $("playerNameInput").value = "";
-  $("roomCodeInput").value = myRoomCode;
+  $("roomCodeInput").value = DEFAULT_ROOM_CODE;
   $("chatMessages").innerHTML = "";
   $("chatInput").value = "";
-  $("roomLabel").textContent = `रूम: ${myRoomCode}`;
+  $("roomLabel").textContent = `रूम: ${DEFAULT_ROOM_NAME}`;
   $("status").textContent = "नया गेम शुरू करने के लिए फिर से जुड़ें।";
   $("loginModal").classList.remove("hidden");
   updateChatUi();
 });
 
 $("chatForm").onsubmit = sendChatMessage;
+$("chatStartBtn").onclick = () => {
+  setChatVisible(true);
+  $("chatInput").focus();
+};
+$("chatHideBtn").onclick = () => setChatVisible(false);
 $("chatInput").addEventListener("input", () => {
   $("chatFeedback").textContent = "";
+  resetChatIdleTimer();
 });
 
 function getMyPlayer() {
@@ -807,14 +897,16 @@ function getMyPlayer() {
 
 const savedSession = loadSavedSession();
 if (savedSession) {
-  myRoomCode = savedSession.roomCode;
+  myRoomCode = DEFAULT_ROOM_CODE;
   myName = savedSession.playerName;
-  reconnectToken = savedSession.reconnectToken;
+  reconnectToken = savedSession.roomCode === DEFAULT_ROOM_CODE
+    ? savedSession.reconnectToken
+    : "";
   hasRoomSession = true;
   $("playerNameInput").value = myName;
-  $("roomCodeInput").value = myRoomCode;
+  $("roomCodeInput").value = DEFAULT_ROOM_CODE;
   $("loginModal").classList.add("hidden");
-  $("roomLabel").textContent = `रूम: ${myRoomCode}`;
+  $("roomLabel").textContent = `रूम: ${DEFAULT_ROOM_NAME}`;
   $("status").textContent = "पिछले गेम से दोबारा जुड़ रहे हैं...";
 }
 
@@ -831,7 +923,7 @@ function render() {
   if (myPlayer) {
     restartRoomControl.classList.remove("hidden");
     restartRoomControl.innerHTML =
-      '<button id="restartRoomDashboardBtn">रूम रीस्टार्ट करें</button>';
+      '<button id="restartRoomDashboardBtn" class="restart-room-button" type="button" aria-label="रूम रीस्टार्ट करें" title="रूम रीस्टार्ट करें"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg></button>';
     $("restartRoomDashboardBtn").onclick = () => {
       if (window.confirm("रूम रीस्टार्ट करने पर मौजूदा गेम और खिलाड़ी हट जाएँगे। क्या जारी रखें?")) {
         socket.emit('restartRoom', {roomCode: myRoomCode});
@@ -843,19 +935,19 @@ function render() {
   }
 
   if (roomData.gameState === 'LOBBY') {
-    const isHost = myPlayer && roomData.hostId === myPlayer.id;
+    const dealer = roomData.players[roomData.dealerIndex];
+    const isDealer = myPlayer &&
+      roomData.dealerIndex === myPlayer.seatIndex;
     const teammates = myPlayer
-      ? roomData.players.filter(player =>
-          player.seatIndex === (myPlayer.seatIndex + 2) % 4
-        )
+      ? roomData.players.filter(player => player.id !== myPlayer.id)
       : [];
-    if (isHost) {
+    if (isDealer) {
       lobbyControls.classList.remove("hidden");
       lobbyControls.innerHTML = `
         <h2>टीम चुनें और गेम शुरू करें</h2>
         <p style="font-size:12px;">
-          अपना आमने-सामने बैठने वाला साथी चुनें। खिलाड़ी 1 और 3 एक टीम में,
-          और खिलाड़ी 2 और 4 दूसरी टीम में होंगे।
+          डीलर ${dealer.name}, किसी भी खिलाड़ी को अपना साथी चुन सकते हैं।
+          बाकी दो खिलाड़ी दूसरी टीम में होंगे।
         </p>
         <select id="teammateSelect" ${roomData.players.length !== 4 ? "disabled" : ""}>
           <option value="">साथी चुनें</option>
@@ -867,8 +959,8 @@ function render() {
         </select>
         <p style="font-size:12px;">
           ${roomData.selectedPartnerId
-            ? `टीम 1: ${myPlayer.name} और ${roomData.players.find(player => player.id === roomData.selectedPartnerId).name}. बाकी दोनों खिलाड़ी टीम 2 में होंगे।`
-            : "बाकी दो खिलाड़ी आपकी विरोधी टीम होंगे।"}
+            ? `टीम 1: ${dealer.name} और ${roomData.players.find(player => player.id === roomData.selectedPartnerId).name}. बाकी दो खिलाड़ी टीम 2 में होंगे।`
+            : "गेम शुरू करने से पहले साथी चुनें।"}
         </p>
         <button id="startGameBtn" style="width:100%;"
           ${roomData.players.length !== 4 || !roomData.selectedPartnerId ? "disabled" : ""}>
@@ -877,6 +969,8 @@ function render() {
       `;
       const teammateSelect = $("teammateSelect");
       teammateSelect.onchange = () => {
+        $("startGameBtn").disabled =
+          roomData.players.length !== 4 || !teammateSelect.value;
         if (teammateSelect.value) {
           socket.emit('selectTeammate', {
             roomCode: myRoomCode,
@@ -937,8 +1031,8 @@ function render() {
 
   $("trickLabel").textContent = `${roomData.trickNo}/13`;
   $("trumpPill").textContent = roomData.trumpSuit === null
-    ? "ट्रंप: —"
-    : `ट्रंप: ${SUITS[roomData.trumpSuit].symbol}`;
+    ? "तुरुप: —"
+    : `तुरुप: ${SUITS[roomData.trumpSuit].hindiName}`;
   const bidder = roomData.players[roomData.bidderIndex];
   $("bidPill").textContent = roomData.fullHouse &&
     roomData.fullHouse.phase === 'INITIAL'
@@ -954,7 +1048,7 @@ function render() {
     roomData.currentTrick.length === 0 &&
     roomData.pendingTricks.length === 0;
   $("fullHouseAction").innerHTML = canCallLateFullHouse
-    ? '<button id="lateFullHouseBtn">Full House (खुल्ली) कहें</button>'
+    ? '<button id="lateFullHouseBtn" class="late-full-house-button">Full House (खुल्ली) कहें</button>'
     : "";
   if (canCallLateFullHouse) {
     $("lateFullHouseBtn").onclick = () => {
@@ -1001,9 +1095,26 @@ function render() {
   }
 
   const mySeat = myPlayer ? myPlayer.seatIndex : 0;
+  const myPartner = roomData.selectedPartnerId
+    ? roomData.players.find(player =>
+        player.id !== myPlayer?.id &&
+        player.teamId === myPlayer?.teamId
+      )
+    : null;
+  const opponents = roomData.players
+    .filter(player =>
+      player.id !== myPlayer?.id &&
+      (!myPartner || player.teamId !== myPlayer.teamId)
+    )
+    .sort((a, b) =>
+      (a.seatIndex - mySeat + 4) % 4 - (b.seatIndex - mySeat + 4) % 4
+    );
+  const displaySeats = myPartner
+    ? [mySeat, opponents[0]?.seatIndex, myPartner.seatIndex, opponents[1]?.seatIndex]
+    : Array.from({length: 4}, (_, relative) => (mySeat + relative) % 4);
 
   for (let relative = 0; relative < 4; relative++) {
-    const actualSeat = (mySeat + relative) % 4;
+    const actualSeat = displaySeats[relative];
     const player = roomData.players[actualSeat];
     const badgeEl = $(`badge${relative}`);
 
@@ -1106,6 +1217,7 @@ function handleDialogs(myPlayer) {
 
   if (roomData.gameState === 'AUCTION' &&
       roomData.auctionTurnIndex === myPlayer.seatIndex) {
+    const isOpeningBid = roomData.auctionTurnCount === 0;
     const min = roomData.bidderIndex === -1
       ? 8
       : roomData.highestBid + 1;
@@ -1130,7 +1242,9 @@ function handleDialogs(myPlayer) {
           <label for="bidSelect" style="font-size:12px;">कितने हाथ जीतने की बोली लगाएँ?</label>
           <select id="bidSelect">${options}</select>
           <div class="actions">
-            <button id="passBtn" class="secondary" style="flex:1;">पास करें</button>
+            <button id="passBtn" class="secondary" style="flex:1;">
+              ${isOpeningBid ? "पास करें — 8 की बोली" : "पास करें"}
+            </button>
             <button id="bidBtn" style="flex:1;">बोली लगाएँ</button>
           </div>
           <p id="bidFeedback" role="alert" style="color:#ffd166;font-size:12px;min-height:16px;"></p>
@@ -1172,7 +1286,9 @@ function handleDialogs(myPlayer) {
     };
 
     $("passBtn").onclick = () => {
-      sendBidAction({roomCode: myRoomCode, passed: true});
+      sendBidAction(isOpeningBid
+        ? {roomCode: myRoomCode, bid: 8, passed: false}
+        : {roomCode: myRoomCode, passed: true});
     };
 
     $("bidBtn").onclick = () => {
@@ -1236,19 +1352,40 @@ function handleDialogs(myPlayer) {
             : ""}
           <p style="font-size:12px;"><b>अपडेटेड स्कोर: ${roomData.gameScore}</b></p>
           <p style="font-size:12px;">अगले डीलर: <b>${nextDealer ? nextDealer.name : '—'}</b></p>
-          <div class="actions">
-            <button id="nextHandBtn" style="width:100%;">अगला राउंड शुरू करें</button>
-          </div>
+          ${roomData.roundResultDeadlineAt &&
+            roomData.roundResultDeadlineAt > Date.now()
+            ? `<p style="font-size:12px;">अगला राउंड 10 सेकंड बाद अपने-आप शुरू होगा।</p>`
+            : `<div class="actions">
+                <button id="nextHandBtn" style="width:100%;">अगला राउंड शुरू करें</button>
+              </div>`}
         </div>
       </div>
     `;
 
-    $("nextHandBtn").onclick = () => {
-      socket.emit('nextHand', {roomCode: myRoomCode});
-      modalRoot.innerHTML = "";
-    };
+    const nextHandBtn = $("nextHandBtn");
+    if (nextHandBtn) {
+      nextHandBtn.onclick = () => {
+        socket.emit('nextHand', {roomCode: myRoomCode});
+        modalRoot.innerHTML = "";
+      };
+    }
   } else if (roomData.gameState === 'MATCH_OVER') {
-    modalRoot.innerHTML = "";
+    const resultVisible = roomData.roundResultDeadlineAt &&
+      roomData.roundResultDeadlineAt > Date.now();
+    modalRoot.innerHTML = `
+      <div class="overlay">
+        <div class="dialog">
+          <h2>${resultVisible ? "राउंड का परिणाम" : "मैच समाप्त"}</h2>
+          ${roomData.roundMessage
+            ? `<p style="font-size:13px;font-weight:bold;color:var(--gold);">${roomData.roundMessage}</p>`
+            : ""}
+          ${resultVisible
+            ? `<p style="font-size:12px;">मैच का अंतिम परिणाम 10 सेकंड बाद दिखेगा।</p>`
+            : `<p style="font-size:13px;">🏆 टीम ${roomData.trophyWinner} ने ट्रॉफी जीती!</p>
+               <p style="font-size:12px;">अंतिम स्कोर: ${roomData.gameScore}</p>`}
+        </div>
+      </div>
+    `;
   } else {
     modalRoot.innerHTML = "";
   }
@@ -1263,7 +1400,11 @@ function showScoreboardModal() {
       <td>${h.dealer}</td>
       <td>${h.fullHouseResult
         ? `Full House: ${h.fullHouseCaller} (${h.fullHouseResult === 'SUCCESS' ? 'सफल' : 'असफल'})${typeof h.bid === 'number' ? `; बोली ${h.bidder} (${h.bid})` : ''}`
-        : `${h.bidder} (${h.bid})`}</td>
+        : `${h.bidder} (${h.bid})${typeof h.bidSuccess === 'boolean'
+          ? h.bidSuccess
+            ? ' — सफल'
+            : ` — असफल (दंड: ${h.bid * 2})`
+          : ''}`}</td>
       <td>${h.startScore} ➔ <b>${h.endScore}</b></td>
     </tr>
   `).join("");
@@ -1294,6 +1435,40 @@ function showScoreboardModal() {
       </div>
     </div>
   `;
+}
+
+function showScoreRulesModal() {
+  $("modalRoot").innerHTML = `
+    <div class="overlay">
+      <div class="dialog">
+        <h2>स्कोर के नियम</h2>
+        <div style="font-size:12px;line-height:1.6;">
+          <p><b>बोली:</b> बोली लगाने वाली टीम को अपनी बोली जितनी या उससे अधिक चालें जीतनी होती हैं।</p>
+          <p><b>बोली लगाने वाली टीम डीलर की टीम हो:</b></p>
+          <ul>
+            <li>बोली सफल: कुल स्कोर से बोली घटेगी।</li>
+            <li>बोली असफल: कुल स्कोर में बोली का दोगुना जुड़ेगा।</li>
+          </ul>
+          <p><b>बोली लगाने वाली टीम डीलर की विरोधी टीम हो:</b></p>
+          <ul>
+            <li>बोली सफल: कुल स्कोर में बोली जुड़ेगी।</li>
+            <li>बोली असफल: कुल स्कोर से बोली का दोगुना घटेगा।</li>
+          </ul>
+          <p><b>लगातार चालें:</b> सामान्य बोली का राउंड बीच में तभी समाप्त होगा जब विरोधी टीम लगातार 2 चालें जीते और उसकी कुल चालें आवश्यक सीमा तक पहुँचें। बोली लगाने वाली टीम चाल जीते तो लगातार जीत की गिनती शून्य हो जाती है। आवश्यक सीमा: 14 − बोली, लेकिन कम से कम 2 चालें।</p>
+          <p><b>Full House (खुल्ली):</b> कॉल करने वाली टीम को सभी 13 चालें जीतनी होती हैं। विरोधी टीम लगातार 2 चालें जीते तो Full House टूट जाता है। सफल टीम को 1 बाजी मिलती है। खुल्ली से अलग से कुल स्कोर नहीं बदलता; देर से घोषित खुल्ली में सामान्य बोली का स्कोर भी लागू होता है।</p>
+          <p><b>नकारात्मक स्कोर:</b> स्कोर शून्य से नीचे जाने पर उसे धनात्मक किया जाता है और डीलर पिछली सीट पर चला जाता है।</p>
+          <p><b>गेम और मैच:</b> कुल स्कोर 52 से अधिक होने पर गेम समाप्त होता है और डीलर की विरोधी टीम को गेम जीत मिलती है। मैच जारी रहने पर अगले गेम का कुल स्कोर 0 से शुरू होता है, लेकिन टीमों की गेम जीत बनी रहती हैं। 3 गेम जीतने वाली पहली टीम ट्रॉफी जीतती है।</p>
+          <p><b>राउंड का परिणाम:</b> स्कोर एक बार अपडेट होता है और अगले राउंड से पहले परिणाम 10 सेकंड तक दिखता है।</p>
+        </div>
+        <div class="actions">
+          <button id="closeScoreRulesBtn" class="secondary" style="width:100%;">बंद करें</button>
+        </div>
+      </div>
+    </div>
+  `;
+  $("closeScoreRulesBtn").onclick = () => {
+    $("modalRoot").innerHTML = "";
+  };
 }
 
 window.selectTrump = (suitIdx) => {

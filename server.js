@@ -17,6 +17,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const rooms = {};
 const RECONNECT_GRACE_MS = 5 * 60 * 1000;
+const ROUND_RESULT_DISPLAY_MS = 10 * 1000;
 
 function generateDeck() {
   const deck = [];
@@ -214,7 +215,7 @@ io.on('connection', (socket) => {
     const { roomCode, playerName } = payload;
     const code = (typeof roomCode === 'string' && roomCode.trim()
       ? roomCode.trim()
-      : 'DEFAULT').toUpperCase();
+      : 'CHHAPUR').toUpperCase();
 
     if (!rooms[code]) {
       rooms[code] = {
@@ -234,6 +235,10 @@ io.on('connection', (socket) => {
         pendingTricks: [],
         teamTricksWon: [0, 0],
         opposingConsecutiveTricks: 0,
+        handResultApplied: false,
+        roundEndReason: null,
+        roundResultTimer: null,
+        roundResultDeadlineAt: null,
         trickNo: 1,
         pot: 0,
         lastWinner: null,
@@ -352,24 +357,19 @@ io.on('connection', (socket) => {
     if (
       !room ||
       room.gameState !== 'LOBBY' ||
-      room.hostId !== socket.id ||
       room.players.length !== 4 ||
       typeof teammateId !== 'string' ||
       teammateId === socket.id
     ) return;
 
     const teammate = room.players.find(player => player.id === teammateId);
-    const host = room.players.find(player => player.id === socket.id);
-    if (
-      !teammate ||
-      !host ||
-      teammate.seatIndex !== (host.seatIndex + 2) % 4
-    ) return;
+    const dealer = room.players[room.dealerIndex];
+    if (!teammate || !dealer || dealer.id !== socket.id) return;
 
     room.selectedPartnerId = teammateId;
     room.players.forEach(player => {
       player.teamId =
-        player.id === socket.id || player.id === teammateId ? 1 : 2;
+        player.id === dealer.id || player.id === teammateId ? 1 : 2;
     });
     broadcastRoomState(room);
   });
@@ -379,7 +379,7 @@ io.on('connection', (socket) => {
     if (
       !room ||
       room.gameState !== 'LOBBY' ||
-      room.hostId !== socket.id ||
+      room.players[room.dealerIndex]?.id !== socket.id ||
       room.players.length !== 4 ||
       !room.selectedPartnerId ||
       !room.players.some(player => player.id === room.selectedPartnerId)
@@ -415,7 +415,11 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (passed) {
+    if (passed && room.auctionTurnCount === 0) {
+      room.highestBid = 8;
+      room.bidderIndex = room.auctionTurnIndex;
+      currentPlayer.currentBid = 8;
+    } else if (passed) {
       currentPlayer.hasPassed = true;
     } else if (
       Number.isInteger(bid) &&
@@ -468,9 +472,7 @@ io.on('connection', (socket) => {
         callerSeat: caller.seatIndex,
         partnerSeat: getPartnerSeat(room, caller.seatIndex),
         phase: 'INITIAL',
-        status: 'ACTIVE',
-        callerHand: [],
-        partnerHand: []
+        status: 'ACTIVE'
       };
       room.bidderIndex = caller.seatIndex;
       room.gameState = 'TRUMP_SELECT';
@@ -484,9 +486,7 @@ io.on('connection', (socket) => {
         callerSeat: caller.seatIndex,
         partnerSeat: getPartnerSeat(room, caller.seatIndex),
         phase: 'LATE',
-        status: 'ACTIVE',
-        callerHand: [...caller.hand],
-        partnerHand: [...room.players[getPartnerSeat(room, caller.seatIndex)].hand]
+        status: 'ACTIVE'
       };
       room.turnIndex = caller.seatIndex;
       room.leadIndex = caller.seatIndex;
@@ -508,13 +508,6 @@ io.on('connection', (socket) => {
 
     room.trumpSuit = suitIndex;
     distributeRemainingCards(room);
-
-    if (room.fullHouse && room.fullHouse.phase === 'INITIAL') {
-      room.fullHouse.callerHand = [...room.players[room.fullHouse.callerSeat].hand];
-      room.fullHouse.partnerHand = [
-        ...room.players[room.fullHouse.partnerSeat].hand
-      ];
-    }
 
     room.gameState = 'PLAYING';
 
@@ -594,7 +587,12 @@ io.on('connection', (socket) => {
   socket.on('nextHand', ({ roomCode }) => {
     const room = rooms[roomCode];
 
-    if (room && room.gameState === 'HAND_OVER') {
+    if (
+      room &&
+      room.gameState === 'HAND_OVER' &&
+      (!room.roundResultDeadlineAt ||
+        room.roundResultDeadlineAt <= Date.now())
+    ) {
       startNewHand(room);
       broadcastRoomState(room);
     }
@@ -623,6 +621,9 @@ io.on('connection', (socket) => {
     room.pendingTricks = [];
     room.teamTricksWon = [0, 0];
     room.opposingConsecutiveTricks = 0;
+    room.handResultApplied = false;
+    clearRoundResultTimer(room);
+    room.roundEndReason = null;
     room.trickNo = 1;
     room.pot = 0;
     room.lastWinner = null;
@@ -697,6 +698,9 @@ function removePlayerFromRoom(room, departedPlayer) {
   room.pendingTricks = [];
   room.teamTricksWon = [0, 0];
   room.opposingConsecutiveTricks = 0;
+  room.handResultApplied = false;
+  clearRoundResultTimer(room);
+  room.roundEndReason = null;
   room.trickNo = 1;
   room.pot = 0;
   room.lastWinner = null;
@@ -716,12 +720,15 @@ function removePlayerFromRoom(room, departedPlayer) {
 }
 
 function startNewHand(room) {
+  clearRoundResultTimer(room);
   room.gameState = 'AUCTION';
   room.deck = generateDeckForRoom(room);
   room.currentTrick = [];
   room.pendingTricks = [];
   room.teamTricksWon = [0, 0];
   room.opposingConsecutiveTricks = 0;
+  room.handResultApplied = false;
+  room.roundEndReason = null;
   room.trickNo = 1;
   room.roundMessage = null;
   room.pot = 0;
@@ -744,6 +751,43 @@ function startNewHand(room) {
     p.hasPassed = false;
     p.currentBid = 0;
   });
+}
+
+function clearRoundResultTimer(room) {
+  if (room.roundResultTimer) {
+    clearTimeout(room.roundResultTimer);
+  }
+  room.roundResultTimer = null;
+  room.roundResultDeadlineAt = null;
+}
+
+function scheduleRoundResultTransition(room) {
+  if (
+    !room.handResultApplied ||
+    (room.gameState !== 'HAND_OVER' && room.gameState !== 'MATCH_OVER') ||
+    room.roundResultTimer
+  ) return;
+
+  const deadlineAt = Date.now() + ROUND_RESULT_DISPLAY_MS;
+  room.roundResultDeadlineAt = deadlineAt;
+  room.roundResultTimer = setTimeout(() => {
+    room.roundResultTimer = null;
+    if (
+      rooms[room.roomCode] !== room ||
+      !room.handResultApplied ||
+      room.roundResultDeadlineAt !== deadlineAt
+    ) return;
+
+    room.roundResultDeadlineAt = null;
+    if (room.gameState === 'HAND_OVER') {
+      startNewHand(room);
+    } else if (room.gameState === 'MATCH_OVER') {
+      room.roundMessage = null;
+    } else {
+      return;
+    }
+    broadcastRoomState(room);
+  }, ROUND_RESULT_DISPLAY_MS);
 }
 
 function getPartnerSeat(room, seatIndex) {
@@ -820,6 +864,7 @@ function resolveTrick(room) {
   room.leadIndex = winnerSeat;
 
   if (room.fullHouse && room.opposingConsecutiveTricks >= 2) {
+    room.roundEndReason = 'TWO_CONSECUTIVE_OPPOSING_TRICKS';
     resolveFullHouse(room);
     if (room.fullHouse.phase === 'INITIAL') {
       finishInitialFullHouse(room);
@@ -835,9 +880,11 @@ function resolveTrick(room) {
     if (bidder && Number.isInteger(room.highestBid)) {
       const defeatThreshold = Math.max(2, 14 - room.highestBid);
       const opposingTeamTricks = room.teamTricksWon[2 - bidder.teamId];
-      if (opposingTeamTricks >= defeatThreshold) {
-        room.roundMessage =
-          `The bidding team is defeated! The opposing team won ${defeatThreshold} tricks.`;
+      if (
+        room.opposingConsecutiveTricks >= 2 &&
+        opposingTeamTricks >= defeatThreshold
+      ) {
+        room.roundEndReason = 'TWO_CONSECUTIVE_OPPOSING_TRICKS';
         evaluateSharedScoreRules(room);
         broadcastRoomState(room);
         return;
@@ -855,9 +902,7 @@ function resolveTrick(room) {
           callerSeat: room.bidderIndex,
           partnerSeat: getPartnerSeat(room, room.bidderIndex),
           phase: 'LATE',
-          status: 'ACTIVE',
-          callerHand: [],
-          partnerHand: []
+          status: 'ACTIVE'
         };
       }
     }
@@ -887,22 +932,35 @@ function resolveFullHouse(room) {
   fullHouse.bajiTeam = successful ? caller.teamId : 3 - caller.teamId;
   if (successful) {
     room.roundMessage =
-      'Full House successful! The caller’s team wins all 13 tricks and 1 Baji point.';
+      'Full House सफल रहा! कॉल करने वाली टीम ने सभी 13 चालें और 1 बाजी जीती।';
   } else {
     room.roundMessage =
-      'Your Full House is broken! The opposing team wins 1 Baji point.';
+      'Full House टूट गया! विरोधी टीम ने लगातार 2 चालें जीतकर 1 बाजी जीती।';
   }
 }
 
 function finishInitialFullHouse(room) {
+  if (room.handResultApplied) return;
   const fullHouse = room.fullHouse;
   const caller = room.players[fullHouse.callerSeat];
   if (!caller || !fullHouse.bajiTeam) {
+    room.handResultApplied = true;
     room.gameState = 'HAND_OVER';
     return;
   }
 
+  room.handResultApplied = true;
   room.teamGameWins[fullHouse.bajiTeam - 1]++;
+  const fullHouseResultMessage = fullHouse.result === 'SUCCESS'
+    ? `टीम ${caller.teamId} ने Full House की सभी 13 चालें जीतीं।`
+    : `टीम ${caller.teamId} Full House हार गई; ${
+        room.roundEndReason === 'TWO_CONSECUTIVE_OPPOSING_TRICKS'
+          ? 'विरोधी टीम ने लगातार 2 चालें जीतीं।'
+          : 'सभी 13 चालें जीतने की शर्त पूरी नहीं हुई।'
+      }`;
+  room.roundMessage =
+    `${fullHouseResultMessage} बोली: Full House; दंड: लागू नहीं। ` +
+    `टीम ${fullHouse.bajiTeam} को 1 बाजी मिली। अपडेटेड स्कोर: ${room.gameScore}/52।`;
   room.scoreHistory.push({
     game: room.gameNumber,
     hand: room.handNumber,
@@ -925,20 +983,25 @@ function finishInitialFullHouse(room) {
 
   room.currentTrick = [];
   room.pendingTricks = [];
+  scheduleRoundResultTransition(room);
 }
 
 // SHARED SCORE CARD LOGIC
 function evaluateSharedScoreRules(room) {
+  if (room.handResultApplied) return;
+
   const dealerPlayer = room.players[room.dealerIndex];
   const bidWinnerPlayer = room.players[room.bidderIndex];
 
   if (!dealerPlayer || !bidWinnerPlayer) {
+    room.handResultApplied = true;
     room.gameState = 'HAND_OVER';
     room.currentTrick = [];
     room.pendingTricks = [];
     return;
   }
 
+  room.handResultApplied = true;
   const dealerTeam = dealerPlayer.teamId;
   const bidWinnerTeam = bidWinnerPlayer.teamId;
 
@@ -986,6 +1049,8 @@ function evaluateSharedScoreRules(room) {
     dealer: dealerPlayer.name,
     bid: bid,
     bidder: bidWinnerPlayer.name,
+    bidSuccess,
+    biddingTeamTricks,
     shufflingTeamWon: shufflingTeamWon,
     startScore: initialScore,
     endScore: newScore,
@@ -1045,6 +1110,24 @@ function evaluateSharedScoreRules(room) {
     room.trophyWinner = normalTrophyWinner;
   }
 
+  const lossConditionMessage = room.roundEndReason ===
+    'TWO_CONSECUTIVE_OPPOSING_TRICKS'
+    ? 'कारण: विरोधी टीम ने लगातार 2 चालें जीतीं।'
+    : bidSuccess
+      ? 'कारण: बोली पूरी हुई।'
+      : 'कारण: बोली पूरी नहीं हुई।';
+  const bidResultMessage = bidSuccess
+    ? `टीम ${bidWinnerTeam} की बोली सफल रही (${bidWinnerPlayer.name}, बोली ${bid})।`
+    : `टीम ${bidWinnerTeam} बोली में हार गई (${bidWinnerPlayer.name}, बोली ${bid}); ` +
+      `2x दंड: ${bid * 2} अंक।`;
+  const fullHouseResultMessage = room.fullHouse &&
+    room.fullHouse.result === 'FAILED'
+    ? `Full House हार गया: टीम ${room.players[room.fullHouse.callerSeat].teamId}। `
+    : '';
+  room.roundMessage =
+    `${fullHouseResultMessage}${lossConditionMessage} ${bidResultMessage} ` +
+    `अपडेटेड स्कोर: ${room.gameScore}/52।`;
+
   // हाथ/मैच समाप्त होने पर टेबल के कार्ड साफ करें।
   if (
     room.gameState === 'HAND_OVER' ||
@@ -1053,6 +1136,7 @@ function evaluateSharedScoreRules(room) {
     room.currentTrick = [];
     room.pendingTricks = [];
   }
+  scheduleRoundResultTransition(room);
 }
 
 function sanitizeRoomState(room, viewerId) {
@@ -1065,9 +1149,7 @@ function sanitizeRoomState(room, viewerId) {
   });
   const fullHouse = room.fullHouse
     ? {
-        ...room.fullHouse,
-        callerHand: undefined,
-        partnerHand: undefined
+        ...room.fullHouse
       }
     : null;
 
@@ -1075,15 +1157,16 @@ function sanitizeRoomState(room, viewerId) {
     ...room,
     players,
     fullHouse,
+    roundResultTimer: undefined,
     revealedFullHouseHands: room.fullHouse
       ? [
           {
             seat: room.fullHouse.callerSeat,
-            hand: room.fullHouse.callerHand
+            hand: room.players[room.fullHouse.callerSeat]?.hand ?? []
           },
           {
             seat: room.fullHouse.partnerSeat,
-            hand: room.fullHouse.partnerHand
+            hand: room.players[room.fullHouse.partnerSeat]?.hand ?? []
           }
         ]
       : [],
