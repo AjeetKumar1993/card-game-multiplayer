@@ -833,7 +833,7 @@ function resolveTrick(room) {
   if (!room.fullHouse) {
     const bidder = room.players[room.bidderIndex];
     if (bidder && Number.isInteger(room.highestBid)) {
-      const defeatThreshold = 14 - room.highestBid;
+      const defeatThreshold = Math.max(2, 14 - room.highestBid);
       const opposingTeamTricks = room.teamTricksWon[2 - bidder.teamId];
       if (opposingTeamTricks >= defeatThreshold) {
         room.roundMessage =
@@ -848,6 +848,20 @@ function resolveTrick(room) {
   if (room.trickNo < 13) {
     room.trickNo++;
   } else {
+    if (!room.fullHouse && room.highestBid === 10) {
+      const bidder = room.players[room.bidderIndex];
+      if (bidder && room.teamTricksWon[bidder.teamId - 1] === 13) {
+        room.fullHouse = {
+          callerSeat: room.bidderIndex,
+          partnerSeat: getPartnerSeat(room, room.bidderIndex),
+          phase: 'LATE',
+          status: 'ACTIVE',
+          callerHand: [],
+          partnerHand: []
+        };
+      }
+    }
+
     if (room.fullHouse) {
       resolveFullHouse(room);
     }
